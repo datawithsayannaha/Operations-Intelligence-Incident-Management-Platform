@@ -4,23 +4,23 @@ import pyodbc
 from pathlib import Path
 
 # =====================================================
-# COLOR PALETTE
+# COLOR PALETTE 
 # =====================================================
 
-BG_MAIN = "#08111F"
-BG_CARD = "#111827"
-BORDER = "#1F2937"
-GRID = "#334155"
-TEXT_MAIN = "#F8FAFC"
-TEXT_MUTED = "#94A3B8"
+BG_MAIN     = "#08111F"
+BG_CARD     = "#111827"
+BORDER      = "#1F2937"
+GRID        = "#334155"
+TEXT_MAIN   = "#F8FAFC"
+TEXT_MUTED  = "#94A3B8"
 
-ACCENT_BLUE = "#3B82F6"
-ACCENT_CYAN = "#22D3EE"
-ACCENT_GREEN = "#10B981"
-ACCENT_RED = "#EF4444"
-ACCENT_AMBER = "#F59E0B"
-ACCENT_PURPLE = "#8B5CF6"
-ACCENT_INDIGO = "#6366F1"
+ACCENT_BLUE    = "#3B82F6"
+ACCENT_CYAN    = "#22D3EE"
+ACCENT_GREEN   = "#10B981"
+ACCENT_RED     = "#EF4444"
+ACCENT_AMBER   = "#F59E0B"
+ACCENT_PURPLE  = "#8B5CF6"
+ACCENT_INDIGO  = "#6366F1"
 
 STATUS_COLORS = {
     "Completed": ACCENT_GREEN,
@@ -41,79 +41,178 @@ PRODUCT_PALETTE = [
 ]
 
 # =====================================================
-# DARK ENTERPRISE THEME
+# DARK ENTERPRISE THEME (UNCHANGED)
 # =====================================================
 
 def inject_theme():
     st.markdown(f"""
     <style>
-    .stApp {{
+
+    .stApp{{
         background:{BG_MAIN};
         color:{TEXT_MAIN};
     }}
 
-    header[data-testid="stHeader"] {{
+    header[data-testid="stHeader"]{{
+        background:{BG_MAIN} !important;
+    }}
+    div[data-testid="stToolbar"]{{
+        background:{BG_MAIN} !important;
+    }}
+    div[data-testid="stDecoration"]{{
         background:{BG_MAIN} !important;
     }}
 
-    div[data-testid="stToolbar"] {{
-        background:{BG_MAIN} !important;
-    }}
-
-    section[data-testid="stSidebar"] {{
+    section[data-testid="stSidebar"]{{
         background:{BG_CARD};
         border-right:1px solid {BORDER};
     }}
-
-    section[data-testid="stSidebar"] * {{
+    section[data-testid="stSidebar"] *{{
         color:{TEXT_MAIN} !important;
     }}
 
-    div[data-testid="stMetric"] {{
+    div[data-testid="stMetric"]{{
         background:{BG_CARD};
         border:1px solid {BORDER};
-        border-radius:16px;
         padding:18px;
+        border-radius:16px;
     }}
 
-    div[data-testid="stPlotlyChart"] {{
+    div[data-testid="stMetricLabel"] p{{
+        color:{TEXT_MUTED} !important;
+        font-size:14px !important;
+    }}
+
+    div[data-testid="stMetricValue"]{{
+        color:{TEXT_MAIN} !important;
+        font-weight:700 !important;
+        opacity:1 !important;
+    }}
+
+    div[data-testid="stMetricValue"] *{{
+        color:{TEXT_MAIN} !important;
+        opacity:1 !important;
+    }}
+
+    div[data-testid="stMetricDelta"]{{
+        color:{TEXT_MAIN} !important;
+    }}
+
+    div[data-baseweb="select"] > div{{
+        background:{BG_CARD} !important;
+        border:1px solid {BORDER} !important;
+        color:{TEXT_MAIN} !important;
+        border-radius:10px !important;
+    }}
+
+    div[data-baseweb="select"] input{{
+        color:{TEXT_MAIN} !important;
+    }}
+
+    div[data-baseweb="select"] svg{{
+        fill:{TEXT_MAIN} !important;
+    }}
+
+    div[data-baseweb="popover"] ul[role="listbox"]{{
+        background:{BG_CARD} !important;
+        border:1px solid {BORDER} !important;
+    }}
+
+    li[role="option"]{{
+        background:{BG_CARD} !important;
+        color:{TEXT_MAIN} !important;
+    }}
+
+    li[role="option"]:hover{{
+        background:{BORDER} !important;
+    }}
+
+    li[aria-selected="true"]{{
+        background:{ACCENT_BLUE}33 !important;
+    }}
+
+    div[data-testid="stPlotlyChart"]{{
         background:{BG_CARD};
         border-radius:16px;
-        border:1px solid {BORDER};
         padding:10px;
+        border:1px solid {BORDER};
     }}
 
-    .block-container {{
-        padding-top:1.5rem;
+    [data-testid="stDataFrame"]{{
+        border-radius:14px;
+        overflow:hidden;
     }}
+
+    [data-testid="stDataFrame"] div{{
+        color:{TEXT_MAIN};
+    }}
+
+    .block-container{{
+        padding-top:1.5rem;
+        padding-bottom:2rem;
+    }}
+
+    h1,h2,h3,p,span,label{{
+        color:{TEXT_MAIN};
+    }}
+
+    hr{{
+        border-color:{BORDER};
+    }}
+
     </style>
     """, unsafe_allow_html=True)
 
 # =====================================================
-# SHARED PLOTLY LAYOUT
+# SHARED PLOTLY LAYOUT (UNCHANGED)
 # =====================================================
 
 def style_fig(fig, y_title="", x_title="", show_legend=True):
 
     fig.update_layout(
+        title="",
         paper_bgcolor=BG_CARD,
         plot_bgcolor=BG_CARD,
+
         font_color=TEXT_MAIN,
+        font_size=13,
+
         xaxis_title=x_title,
         yaxis_title=y_title,
-        showlegend=show_legend,
+
         yaxis_gridcolor=GRID,
         xaxis_gridcolor=BG_CARD,
+
+        showlegend=show_legend,
+
         legend=dict(
             orientation="h",
-            y=1.08,
-            x=0
+            y=1.10,
+            x=0,
+            bgcolor="rgba(0,0,0,0)",
+            font=dict(color=TEXT_MAIN, size=12)
         ),
-        margin=dict(t=20, l=10, r=10, b=10)
+
+        margin=dict(t=20, l=10, r=10, b=10),
+
+        hoverlabel=dict(
+            bgcolor=BG_CARD,
+            font_color=TEXT_MAIN,
+            bordercolor=BORDER
+        )
     )
 
-    fig.update_xaxes(color=TEXT_MAIN)
-    fig.update_yaxes(color=TEXT_MAIN)
+    fig.update_xaxes(
+        color=TEXT_MAIN,
+        tickfont=dict(color=TEXT_MAIN, size=12),
+        title_font=dict(color=TEXT_MAIN, size=13)
+    )
+
+    fig.update_yaxes(
+        color=TEXT_MAIN,
+        tickfont=dict(color=TEXT_MAIN, size=12),
+        title_font=dict(color=TEXT_MAIN, size=13)
+    )
 
     return fig
 
@@ -123,10 +222,11 @@ def style_fig(fig, y_title="", x_title="", show_legend=True):
 # Cloud  -> CSV
 # =====================================================
 
-@st.cache_data(show_spinner=False)
+@st.cache_data
 def load_data():
 
     try:
+        # ---------- LOCAL SQL SERVER ----------
         conn = pyodbc.connect(
             "DRIVER={ODBC Driver 17 for SQL Server};"
             "SERVER=localhost,1433;"
@@ -136,37 +236,31 @@ def load_data():
             "TrustServerCertificate=yes;"
         )
 
-        df = pd.read_sql(
-            "SELECT * FROM enriched_orders",
-            conn
-        )
-
+        df = pd.read_sql("SELECT * FROM enriched_orders", conn)
         conn.close()
 
     except Exception:
-
+        # ---------- STREAMLIT CLOUD ----------
         BASE_DIR = Path(__file__).resolve().parents[2]
         csv_path = BASE_DIR / "data" / "enriched_orders.csv"
 
         df = pd.read_csv(csv_path)
 
-    # ---------- Common Cleaning ----------
+    # ---------- COMMON CLEANING ----------
 
     for col in ["order_date", "expected_date", "actual_date"]:
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")
 
-    if "customer_region" in df.columns:
-        df["customer_region"] = (
-            df["customer_region"]
-            .fillna("Unknown")
-            .str.title()
-        )
+    df["customer_region"] = (
+        df["customer_region"]
+        .fillna("Unknown")
+        .str.title()
+    )
 
-    if "delivery_delay_days" in df.columns:
-        df["delivery_delay_days"] = pd.to_numeric(
-            df["delivery_delay_days"],
-            errors="coerce"
-        ).fillna(0)
+    df["delivery_delay_days"] = pd.to_numeric(
+        df["delivery_delay_days"],
+        errors="coerce"
+    ).fillna(0)
 
     return df
