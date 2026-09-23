@@ -4,7 +4,7 @@ import pyodbc
 from pathlib import Path
 
 # =====================================================
-# COLOR PALETTE 
+# COLOR PALETTE
 # =====================================================
 
 BG_MAIN = "#08111F"
@@ -26,18 +26,18 @@ STATUS_COLORS = {
     "Completed": ACCENT_GREEN,
     "Processing": ACCENT_BLUE,
     "Cancelled": ACCENT_RED,
-    "Returned": ACCENT_AMBER,
+    "Returned": ACCENT_AMBER
 }
 
 REGION_PALETTE = [
-    "#1D4ED8", "#2563EB", "#3B82F6", "#60A5FA",
-    "#93C5FD", "#0EA5E9", "#38BDF8", "#7DD3FC",
+    "#1D4ED8","#2563EB","#3B82F6","#60A5FA",
+    "#93C5FD","#0EA5E9","#38BDF8","#7DD3FC"
 ]
 
 PRODUCT_PALETTE = [
-    "#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA",
-    "#C4B5FD", "#4F46E5", "#6366F1", "#818CF8",
-    "#A5B4FC", "#C7D2FE",
+    "#6D28D9","#7C3AED","#8B5CF6","#A78BFA",
+    "#C4B5FD","#4F46E5","#6366F1","#818CF8",
+    "#A5B4FC","#C7D2FE"
 ]
 
 # =====================================================
@@ -45,8 +45,7 @@ PRODUCT_PALETTE = [
 # =====================================================
 
 def inject_theme():
-    st.markdown(
-        f"""
+    st.markdown(f"""
     <style>
 
     .stApp {{
@@ -69,60 +68,67 @@ def inject_theme():
         color:{TEXT_MAIN} !important;
     }}
 
-    /* KPI Cards */
+    /* KPI */
 
     div[data-testid="stMetric"] {{
         background:{BG_CARD};
         border:1px solid {BORDER};
-        padding:18px;
         border-radius:16px;
+        padding:18px;
     }}
 
     div[data-testid="stMetricLabel"] p {{
         color:{TEXT_MUTED} !important;
-        font-size:14px !important;
     }}
 
     div[data-testid="stMetricValue"],
     div[data-testid="stMetricValue"] * {{
         color:{TEXT_MAIN} !important;
-        font-weight:700 !important;
         opacity:1 !important;
+        font-weight:700 !important;
     }}
 
-    div[data-testid="stMetricDelta"] {{
-        color:{TEXT_MAIN} !important;
-    }}
+    /* ===== SELECTBOX FINAL FIX ===== */
 
-    /* ===== REGION FILTER FIX (Cloud + Local) ===== */
-
-    div[data-testid="stSelectbox"] > div {{
-        background:transparent !important;
+    div[data-testid="stSelectbox"] {{
+        background: transparent !important;
     }}
 
     div[data-testid="stSelectbox"] div[data-baseweb="select"] {{
-        background:#0F172A !important;
-        border-radius:10px !important;
+        background: #0B1220 !important;
+        border-radius: 10px !important;
     }}
 
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {{
-        background:#0F172A !important;
-        border:1px solid {BORDER} !important;
-        border-radius:10px !important;
-        color:{TEXT_MAIN} !important;
-        min-height:42px !important;
+        background: #0B1220 !important;
+        background-color: #0B1220 !important;
+        border: 1px solid {BORDER} !important;
+        border-radius: 10px !important;
+        color: {TEXT_MAIN} !important;
+        box-shadow: none !important;
+        min-height: 42px !important;
     }}
 
-    div[data-testid="stSelectbox"] span,
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div > div {{
+        background: transparent !important;
+        color: {TEXT_MAIN} !important;
+    }}
+
+    div[data-testid="stSelectbox"] span {{
+        color: {TEXT_MAIN} !important;
+        opacity: 1 !important;
+    }}
+
     div[data-testid="stSelectbox"] input {{
-        color:{TEXT_MAIN} !important;
-        -webkit-text-fill-color:{TEXT_MAIN} !important;
-        opacity:1 !important;
+        color: {TEXT_MAIN} !important;
+        -webkit-text-fill-color: {TEXT_MAIN} !important;
     }}
 
     div[data-testid="stSelectbox"] svg {{
-        fill:{TEXT_MAIN} !important;
+        fill: {TEXT_MAIN} !important;
     }}
+
+    /* Dropdown */
 
     div[role="listbox"] {{
         background:{BG_CARD} !important;
@@ -142,20 +148,14 @@ def inject_theme():
 
     div[data-testid="stPlotlyChart"] {{
         background:{BG_CARD};
+        border:1px solid {BORDER};
         border-radius:16px;
         padding:10px;
-        border:1px solid {BORDER};
     }}
-
-    /* DataFrame */
 
     [data-testid="stDataFrame"] {{
         border-radius:14px;
         overflow:hidden;
-    }}
-
-    [data-testid="stDataFrame"] div {{
-        color:{TEXT_MAIN};
     }}
 
     .block-container {{
@@ -172,12 +172,10 @@ def inject_theme():
     }}
 
     </style>
-    """,
-        unsafe_allow_html=True,
-    )
+    """, unsafe_allow_html=True)
 
 # =====================================================
-# SHARED PLOTLY LAYOUT
+# PLOTLY LAYOUT
 # =====================================================
 
 def style_fig(fig, y_title="", x_title="", show_legend=True):
@@ -198,41 +196,29 @@ def style_fig(fig, y_title="", x_title="", show_legend=True):
             y=1.10,
             x=0,
             bgcolor="rgba(0,0,0,0)",
-            font=dict(color=TEXT_MAIN, size=12),
+            font=dict(color=TEXT_MAIN,size=12)
         ),
-        margin=dict(t=20, l=10, r=10, b=10),
+        margin=dict(t=20,l=10,r=10,b=10),
         hoverlabel=dict(
             bgcolor=BG_CARD,
             font_color=TEXT_MAIN,
-            bordercolor=BORDER,
-        ),
+            bordercolor=BORDER
+        )
     )
 
-    fig.update_xaxes(
-        color=TEXT_MAIN,
-        tickfont=dict(color=TEXT_MAIN, size=12),
-        title_font=dict(color=TEXT_MAIN, size=13),
-    )
-
-    fig.update_yaxes(
-        color=TEXT_MAIN,
-        tickfont=dict(color=TEXT_MAIN, size=12),
-        title_font=dict(color=TEXT_MAIN, size=13),
-    )
+    fig.update_xaxes(color=TEXT_MAIN)
+    fig.update_yaxes(color=TEXT_MAIN)
 
     return fig
 
 # =====================================================
 # SMART DATA LOADER
-# Local  -> SQL Server
-# Cloud  -> CSV
 # =====================================================
 
 @st.cache_data
 def load_data():
 
     try:
-        # LOCAL SQL SERVER
         conn = pyodbc.connect(
             "DRIVER={ODBC Driver 17 for SQL Server};"
             "SERVER=localhost,1433;"
@@ -246,15 +232,13 @@ def load_data():
         conn.close()
 
     except Exception:
-        # STREAMLIT CLOUD (CSV)
+
         BASE_DIR = Path(__file__).resolve().parents[2]
         csv_path = BASE_DIR / "data" / "enriched_orders.csv"
 
         df = pd.read_csv(csv_path)
 
-    # COMMON CLEANING
-
-    for col in ["order_date", "expected_date", "actual_date"]:
+    for col in ["order_date","expected_date","actual_date"]:
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")
 
@@ -268,7 +252,7 @@ def load_data():
     if "delivery_delay_days" in df.columns:
         df["delivery_delay_days"] = pd.to_numeric(
             df["delivery_delay_days"],
-            errors="coerce",
+            errors="coerce"
         ).fillna(0)
 
     return df
