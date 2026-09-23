@@ -67,59 +67,127 @@ Groq LLM     SQL Tool
 
 # 🔄 Workflow 1 — ETL & Data Quality Pipeline
 
-### Objective
+## Objective
 
-Build a production-style ETL pipeline for operational datasets.
+Design a production-style ETL pipeline that ingests multiple operational datasets, performs Python-based data cleaning and data quality validation, loads each dataset into Microsoft SQL Server, and builds a unified analytical table (`enriched_orders`) for downstream AI analytics.
 
-### Pipeline
+---
+
+## ETL Pipeline
 
 ```text
-CSV Files
-   │
-   ▼
-Read Files
-   │
-   ▼
-Extract CSV
-   │
-   ▼
-Python Data Cleaning
-   │
-   ▼
-Data Quality Validation
-   │
-   ▼
-Merge
-   │
-   ▼
-SQL Server
-   │
-   ▼
-DQ Summary Report
+Orders.csv ───────────────┐
+Customers.csv ────────────┤
+Deliveries.csv ───────────┤
+Support_Tickets.csv ──────┤
+Inventory.csv ────────────┘
+            │
+            ▼
+     Read Files from Disk
+            │
+            ▼
+      Extract CSV Records
+            │
+            ▼
+   Python Data Cleaning
+            │
+            ▼
+   Data Quality Validation
+            │
+            ▼
+   SQL Server Table Load
+            │
+            ├── Orders
+            ├── Customers
+            ├── Deliveries
+            ├── Tickets
+            └── Inventory
+            │
+            ▼
+ SQL Join & Data Enrichment
+            │
+            ▼
+     enriched_orders
+            │
+            ▼
+ KPI Engine + AI Analytics
 ```
 
-### Datasets
+---
 
-| Dataset | Records |
-|----------|--------:|
+## Datasets
+
+| Dataset | Rows |
+|----------|-----:|
 | Orders | 10,100 |
 | Customers | 4,050 |
 | Deliveries | 9,570 |
 | Support Tickets | 5,060 |
 | Inventory | 8,100 |
 
-**Total Records:** 36,880+
+**Total Records Processed:** 36,880+
 
-### Data Quality Checks
+---
 
-- Missing value validation
-- Duplicate detection
+## Python Data Cleaning
+
+Each dataset is cleaned independently using Python (Pandas).
+
+- Missing value handling
+- Duplicate removal
+- Data type conversion
 - Date standardization
 - Payment status normalization
-- Delivery validation
-- Inventory consistency
-- Customer ID integrity
+- Delivery status validation
+- Inventory consistency checks
+- Customer ID integrity validation
 
+---
+
+## Data Quality Engine
+
+A dedicated DQ validation module evaluates every dataset before loading into SQL Server.
+
+**Validation checks include:**
+
+- Null value detection
+- Duplicate records
+- Invalid dates
+- Negative quantities
+- Invalid payment status
+- Delivery delay validation
+- Stock consistency rules
+
+A consolidated **DQ Summary Report** is generated after all validations.
+
+---
+
+## SQL Server Data Warehouse
+
+After successful validation, each cleaned dataset is loaded into its own SQL table.
+
+| SQL Table | Source |
+|-----------|--------|
+| Orders | orders.csv |
+| Customers | customers.csv |
+| Deliveries | deliveries.csv |
+| Tickets | support_tickets.csv |
+| Inventory | inventory.csv |
+
+Finally, SQL joins all operational tables to create the analytical table:
+
+**`enriched_orders`**
+
+This table becomes the single source of truth for KPI calculation and AI-driven business analysis.
+
+---
+
+## Output
+
+- Clean SQL tables
+- Data Quality Summary
+- Unified `enriched_orders` analytical table
+- Ready for KPI Engine & AI Agent
 ---
 
 # 🤖 Workflow 2 — Conversational AI Agent
