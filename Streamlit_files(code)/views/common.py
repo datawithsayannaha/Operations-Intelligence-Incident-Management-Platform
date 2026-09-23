@@ -1,0 +1,240 @@
+import streamlit as st
+import pandas as pd
+import pyodbc
+
+# =====================================================
+# COLOR PALETTE (single source of truth)
+# =====================================================
+
+BG_MAIN     = "#08111F"
+BG_CARD     = "#111827"
+BORDER      = "#1F2937"
+GRID        = "#334155"
+TEXT_MAIN   = "#F8FAFC"
+TEXT_MUTED  = "#94A3B8"
+
+ACCENT_BLUE    = "#3B82F6"
+ACCENT_CYAN    = "#22D3EE"
+ACCENT_GREEN   = "#10B981"
+ACCENT_RED     = "#EF4444"
+ACCENT_AMBER   = "#F59E0B"
+ACCENT_PURPLE  = "#8B5CF6"
+ACCENT_INDIGO  = "#6366F1"
+
+STATUS_COLORS = {
+    "Completed": ACCENT_GREEN,
+    "Processing": ACCENT_BLUE,
+    "Cancelled": ACCENT_RED,
+    "Returned": ACCENT_AMBER
+}
+
+REGION_PALETTE = [
+    "#1D4ED8", "#2563EB", "#3B82F6", "#60A5FA",
+    "#93C5FD", "#0EA5E9", "#38BDF8", "#7DD3FC"
+]
+PRODUCT_PALETTE = [
+    "#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA",
+    "#C4B5FD", "#4F46E5", "#6366F1", "#818CF8",
+    "#A5B4FC", "#C7D2FE"
+]
+
+# =====================================================
+# DARK ENTERPRISE THEME (CSS) — call ONCE from app.py
+# =====================================================
+
+def inject_theme():
+    st.markdown(f"""
+    <style>
+
+    .stApp{{
+        background:{BG_MAIN};
+        color:{TEXT_MAIN};
+    }}
+
+    header[data-testid="stHeader"]{{
+        background:{BG_MAIN} !important;
+    }}
+    div[data-testid="stToolbar"]{{
+        background:{BG_MAIN} !important;
+    }}
+    div[data-testid="stDecoration"]{{
+        background:{BG_MAIN} !important;
+    }}
+
+    section[data-testid="stSidebar"]{{
+        background:{BG_CARD};
+        border-right:1px solid {BORDER};
+    }}
+    section[data-testid="stSidebar"] *{{
+        color:{TEXT_MAIN} !important;
+    }}
+
+    div[data-testid="stMetric"]{{
+        background:{BG_CARD};
+        border:1px solid {BORDER};
+        padding:18px;
+        border-radius:16px;
+    }}
+
+    div[data-testid="stMetricLabel"] p{{
+        color:{TEXT_MUTED} !important;
+        font-size:14px !important;
+    }}
+
+    div[data-testid="stMetricValue"]{{
+        color:{TEXT_MAIN} !important;
+        font-weight:700 !important;
+    }}
+
+    div[data-testid="stMetricDelta"]{{
+        color:{TEXT_MAIN} !important;
+    }}
+
+    div[data-baseweb="select"] > div{{
+        background:{BG_CARD} !important;
+        border:1px solid {BORDER} !important;
+        color:{TEXT_MAIN} !important;
+        border-radius:10px !important;
+    }}
+    div[data-baseweb="select"] input{{
+        color:{TEXT_MAIN} !important;
+    }}
+    div[data-baseweb="select"] svg{{
+        fill:{TEXT_MAIN} !important;
+    }}
+    div[data-baseweb="popover"] ul[role="listbox"]{{
+        background:{BG_CARD} !important;
+        border:1px solid {BORDER} !important;
+    }}
+    li[role="option"]{{
+        background:{BG_CARD} !important;
+        color:{TEXT_MAIN} !important;
+    }}
+    li[role="option"]:hover{{
+        background:{BORDER} !important;
+    }}
+    li[aria-selected="true"]{{
+        background:{ACCENT_BLUE}33 !important;
+    }}
+
+    div[data-testid="stPlotlyChart"]{{
+        background:{BG_CARD};
+        border-radius:16px;
+        padding:10px;
+        border:1px solid {BORDER};
+    }}
+
+    [data-testid="stDataFrame"]{{
+        border-radius:14px;
+        overflow:hidden;
+    }}
+    [data-testid="stDataFrame"] div{{
+        color:{TEXT_MAIN};
+    }}
+
+    .block-container{{
+        padding-top:1.5rem;
+        padding-bottom:2rem;
+    }}
+
+    h1,h2,h3,p,span,label{{
+        color:{TEXT_MAIN};
+    }}
+
+    hr{{
+        border-color:{BORDER};
+    }}
+
+    </style>
+    """, unsafe_allow_html=True)
+
+
+# =====================================================
+# SHARED PLOTLY LAYOUT HELPER
+# =====================================================
+
+def style_fig(fig, y_title="", x_title="", show_legend=True):
+
+    fig.update_layout(
+        title="",
+        paper_bgcolor=BG_CARD,
+        plot_bgcolor=BG_CARD,
+
+        font_color=TEXT_MAIN,
+        font_size=13,
+
+        xaxis_title=x_title,
+        yaxis_title=y_title,
+
+        yaxis_gridcolor=GRID,
+        xaxis_gridcolor=BG_CARD,
+
+        showlegend=show_legend,
+
+        legend=dict(
+            orientation="h",
+            y=1.10,
+            x=0,
+            bgcolor="rgba(0,0,0,0)",
+            font=dict(color=TEXT_MAIN, size=12)
+        ),
+
+        margin=dict(t=20, l=10, r=10, b=10),
+
+        hoverlabel=dict(
+            bgcolor=BG_CARD,
+            font_color=TEXT_MAIN,
+            bordercolor=BORDER
+        )
+    )
+
+    fig.update_xaxes(
+        color=TEXT_MAIN,
+        tickfont=dict(color=TEXT_MAIN, size=12),
+        title_font=dict(color=TEXT_MAIN, size=13)
+    )
+
+    fig.update_yaxes(
+        color=TEXT_MAIN,
+        tickfont=dict(color=TEXT_MAIN, size=12),
+        title_font=dict(color=TEXT_MAIN, size=13)
+    )
+
+    return fig
+
+
+# =====================================================
+# SQL CONNECTION + CLEAN DATA (cached once, shared by every view)
+# =====================================================
+
+@st.cache_data
+def load_data():
+
+    conn = pyodbc.connect(
+        "DRIVER={ODBC Driver 17 for SQL Server};"
+        "SERVER=localhost,1433;"
+        "DATABASE=OIM_DB;"
+        "UID=sa;"
+        "PWD=sayan@12345;"
+        "TrustServerCertificate=yes;"
+    )
+
+    df = pd.read_sql("SELECT * FROM enriched_orders", conn)
+    conn.close()
+
+    for col in ["order_date", "expected_date", "actual_date"]:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce")
+
+    df["customer_region"] = (
+        df["customer_region"]
+        .fillna("Unknown")
+        .str.title()
+    )
+
+    df["delivery_delay_days"] = pd.to_numeric(
+        df["delivery_delay_days"],
+        errors="coerce"
+    ).fillna(0)
+
+    return df
