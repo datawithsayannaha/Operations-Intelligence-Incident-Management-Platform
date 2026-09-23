@@ -1,6 +1,6 @@
 # 🤖 Operations Intelligence & Incident Management Platform
 
-> End-to-End AI-Powered Business Intelligence Platform using **Streamlit, n8n, SQL Server, Python, Docker & Groq LLM**
+> End-to-End AI-Powered Business Intelligence Platform using **Streamlit, n8n, SQL Server, Python & Groq LLM**
 
 An enterprise-style Operations Intelligence platform that transforms natural language business questions into live SQL Server queries and generates executive-level operational reports using an AI Agent.
 
