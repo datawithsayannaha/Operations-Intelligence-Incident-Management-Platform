@@ -297,7 +297,38 @@ Which carrier has the highest average delivery delay?
 
 Where are we losing operational efficiency?
 ```
+---
 
+# 📈 Executive Dashboard
+
+Interactive executive dashboard connected directly to SQL Server.
+
+![Executive Dashboard](images/executive_dashboard.png)
+
+### Dashboard Modules
+
+- 📦 Executive KPI Cards
+- 🌍 Revenue by Region
+- 📊 Orders by Status
+- 👥 Customer Intelligence
+- 🚚 Logistics Analytics
+- 📦 Inventory Risk
+- 🤖 AI Command Center
+
+### Executive KPIs
+
+| KPI | Value |
+|---|---:|
+| Orders | 9,900 |
+| Revenue | ₹125.85M |
+| Delay Rate | 40.4% |
+| High Risk Orders | 1,347 |
+
+---
+
+# 🧠 AI Executive Report
+
+Every business question returns a structured executive report.
 ---
 
 # 📈 Executive Report Structure
