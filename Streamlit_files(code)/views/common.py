@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import pyodbc
@@ -8,20 +7,20 @@ from pathlib import Path
 # COLOR PALETTE
 # =====================================================
 
-BG_MAIN     = "#08111F"
-BG_CARD     = "#111827"
-BORDER      = "#1F2937"
-GRID        = "#334155"
-TEXT_MAIN   = "#F8FAFC"
-TEXT_MUTED  = "#94A3B8"
+BG_MAIN = "#08111F"
+BG_CARD = "#111827"
+BORDER = "#1F2937"
+GRID = "#334155"
+TEXT_MAIN = "#F8FAFC"
+TEXT_MUTED = "#94A3B8"
 
-ACCENT_BLUE    = "#3B82F6"
-ACCENT_CYAN    = "#22D3EE"
-ACCENT_GREEN   = "#10B981"
-ACCENT_RED     = "#EF4444"
-ACCENT_AMBER   = "#F59E0B"
-ACCENT_PURPLE  = "#8B5CF6"
-ACCENT_INDIGO  = "#6366F1"
+ACCENT_BLUE = "#3B82F6"
+ACCENT_CYAN = "#22D3EE"
+ACCENT_GREEN = "#10B981"
+ACCENT_RED = "#EF4444"
+ACCENT_AMBER = "#F59E0B"
+ACCENT_PURPLE = "#8B5CF6"
+ACCENT_INDIGO = "#6366F1"
 
 STATUS_COLORS = {
     "Completed": ACCENT_GREEN,
@@ -48,7 +47,6 @@ PRODUCT_PALETTE = [
 def inject_theme():
     st.markdown(f"""
     <style>
-
     .stApp {{
         background:{BG_MAIN};
         color:{TEXT_MAIN};
@@ -59,10 +57,6 @@ def inject_theme():
     }}
 
     div[data-testid="stToolbar"] {{
-        background:{BG_MAIN} !important;
-    }}
-
-    div[data-testid="stDecoration"] {{
         background:{BG_MAIN} !important;
     }}
 
@@ -78,50 +72,22 @@ def inject_theme():
     div[data-testid="stMetric"] {{
         background:{BG_CARD};
         border:1px solid {BORDER};
-        padding:18px;
         border-radius:16px;
-    }}
-
-    div[data-testid="stMetricLabel"] p {{
-        color:{TEXT_MUTED} !important;
-        font-size:14px !important;
-    }}
-
-    div[data-testid="stMetricValue"] {{
-        color:{TEXT_MAIN} !important;
-        font-weight:700 !important;
-    }}
-
-    div[data-baseweb="select"] > div {{
-        background:{BG_CARD} !important;
-        border:1px solid {BORDER} !important;
-        color:{TEXT_MAIN} !important;
-        border-radius:10px !important;
+        padding:18px;
     }}
 
     div[data-testid="stPlotlyChart"] {{
         background:{BG_CARD};
         border-radius:16px;
-        padding:10px;
         border:1px solid {BORDER};
+        padding:10px;
     }}
 
     .block-container {{
         padding-top:1.5rem;
-        padding-bottom:2rem;
     }}
-
-    h1,h2,h3,p,span,label {{
-        color:{TEXT_MAIN};
-    }}
-
-    hr {{
-        border-color:{BORDER};
-    }}
-
     </style>
     """, unsafe_allow_html=True)
-
 
 # =====================================================
 # SHARED PLOTLY LAYOUT
@@ -130,63 +96,37 @@ def inject_theme():
 def style_fig(fig, y_title="", x_title="", show_legend=True):
 
     fig.update_layout(
-        title="",
         paper_bgcolor=BG_CARD,
         plot_bgcolor=BG_CARD,
         font_color=TEXT_MAIN,
-        font_size=13,
-
         xaxis_title=x_title,
         yaxis_title=y_title,
-
+        showlegend=show_legend,
         yaxis_gridcolor=GRID,
         xaxis_gridcolor=BG_CARD,
-
-        showlegend=show_legend,
-
         legend=dict(
             orientation="h",
-            y=1.10,
-            x=0,
-            bgcolor="rgba(0,0,0,0)",
-            font=dict(color=TEXT_MAIN, size=12)
+            y=1.08,
+            x=0
         ),
-
-        margin=dict(t=20, l=10, r=10, b=10),
-
-        hoverlabel=dict(
-            bgcolor=BG_CARD,
-            font_color=TEXT_MAIN,
-            bordercolor=BORDER
-        )
+        margin=dict(t=20, l=10, r=10, b=10)
     )
 
-    fig.update_xaxes(
-        color=TEXT_MAIN,
-        tickfont=dict(color=TEXT_MAIN, size=12),
-        title_font=dict(color=TEXT_MAIN, size=13)
-    )
-
-    fig.update_yaxes(
-        color=TEXT_MAIN,
-        tickfont=dict(color=TEXT_MAIN, size=12),
-        title_font=dict(color=TEXT_MAIN, size=13)
-    )
+    fig.update_xaxes(color=TEXT_MAIN)
+    fig.update_yaxes(color=TEXT_MAIN)
 
     return fig
 
-
 # =====================================================
 # SMART DATA LOADER
-# Local  : SQL Server
-# Cloud  : CSV
+# Local  -> SQL Server
+# Cloud  -> CSV
 # =====================================================
 
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def load_data():
 
     try:
-        # ---------- LOCAL SQL SERVER ----------
         conn = pyodbc.connect(
             "DRIVER={ODBC Driver 17 for SQL Server};"
             "SERVER=localhost,1433;"
@@ -202,19 +142,15 @@ def load_data():
         )
 
         conn.close()
-        st.session_state["data_source"] = "SQL Server"
 
     except Exception:
-        # ---------- STREAMLIT CLOUD ----------
+
         BASE_DIR = Path(__file__).resolve().parents[2]
         csv_path = BASE_DIR / "data" / "enriched_orders.csv"
 
         df = pd.read_csv(csv_path)
-        st.session_state["data_source"] = "CSV"
 
-    # =================================================
-    # COMMON DATA CLEANING
-    # =================================================
+    # ---------- Common Cleaning ----------
 
     for col in ["order_date", "expected_date", "actual_date"]:
         if col in df.columns:
