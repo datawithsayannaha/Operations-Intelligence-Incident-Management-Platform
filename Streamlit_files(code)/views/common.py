@@ -1,9 +1,11 @@
+
 import streamlit as st
 import pandas as pd
 import pyodbc
+from pathlib import Path
 
 # =====================================================
-# COLOR PALETTE (single source of truth)
+# COLOR PALETTE
 # =====================================================
 
 BG_MAIN     = "#08111F"
@@ -32,6 +34,7 @@ REGION_PALETTE = [
     "#1D4ED8", "#2563EB", "#3B82F6", "#60A5FA",
     "#93C5FD", "#0EA5E9", "#38BDF8", "#7DD3FC"
 ]
+
 PRODUCT_PALETTE = [
     "#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA",
     "#C4B5FD", "#4F46E5", "#6366F1", "#818CF8",
@@ -39,109 +42,80 @@ PRODUCT_PALETTE = [
 ]
 
 # =====================================================
-# DARK ENTERPRISE THEME (CSS) — call ONCE from app.py
+# DARK ENTERPRISE THEME
 # =====================================================
 
 def inject_theme():
     st.markdown(f"""
     <style>
 
-    .stApp{{
+    .stApp {{
         background:{BG_MAIN};
         color:{TEXT_MAIN};
     }}
 
-    header[data-testid="stHeader"]{{
-        background:{BG_MAIN} !important;
-    }}
-    div[data-testid="stToolbar"]{{
-        background:{BG_MAIN} !important;
-    }}
-    div[data-testid="stDecoration"]{{
+    header[data-testid="stHeader"] {{
         background:{BG_MAIN} !important;
     }}
 
-    section[data-testid="stSidebar"]{{
+    div[data-testid="stToolbar"] {{
+        background:{BG_MAIN} !important;
+    }}
+
+    div[data-testid="stDecoration"] {{
+        background:{BG_MAIN} !important;
+    }}
+
+    section[data-testid="stSidebar"] {{
         background:{BG_CARD};
         border-right:1px solid {BORDER};
     }}
-    section[data-testid="stSidebar"] *{{
+
+    section[data-testid="stSidebar"] * {{
         color:{TEXT_MAIN} !important;
     }}
 
-    div[data-testid="stMetric"]{{
+    div[data-testid="stMetric"] {{
         background:{BG_CARD};
         border:1px solid {BORDER};
         padding:18px;
         border-radius:16px;
     }}
 
-    div[data-testid="stMetricLabel"] p{{
+    div[data-testid="stMetricLabel"] p {{
         color:{TEXT_MUTED} !important;
         font-size:14px !important;
     }}
 
-    div[data-testid="stMetricValue"]{{
+    div[data-testid="stMetricValue"] {{
         color:{TEXT_MAIN} !important;
         font-weight:700 !important;
     }}
 
-    div[data-testid="stMetricDelta"]{{
-        color:{TEXT_MAIN} !important;
-    }}
-
-    div[data-baseweb="select"] > div{{
+    div[data-baseweb="select"] > div {{
         background:{BG_CARD} !important;
         border:1px solid {BORDER} !important;
         color:{TEXT_MAIN} !important;
         border-radius:10px !important;
     }}
-    div[data-baseweb="select"] input{{
-        color:{TEXT_MAIN} !important;
-    }}
-    div[data-baseweb="select"] svg{{
-        fill:{TEXT_MAIN} !important;
-    }}
-    div[data-baseweb="popover"] ul[role="listbox"]{{
-        background:{BG_CARD} !important;
-        border:1px solid {BORDER} !important;
-    }}
-    li[role="option"]{{
-        background:{BG_CARD} !important;
-        color:{TEXT_MAIN} !important;
-    }}
-    li[role="option"]:hover{{
-        background:{BORDER} !important;
-    }}
-    li[aria-selected="true"]{{
-        background:{ACCENT_BLUE}33 !important;
-    }}
 
-    div[data-testid="stPlotlyChart"]{{
+    div[data-testid="stPlotlyChart"] {{
         background:{BG_CARD};
         border-radius:16px;
         padding:10px;
         border:1px solid {BORDER};
     }}
 
-    [data-testid="stDataFrame"]{{
-        border-radius:14px;
-        overflow:hidden;
-    }}
-    [data-testid="stDataFrame"] div{{
-        color:{TEXT_MAIN};
-    }}
-
-    .block-container{{
+    .block-container {{
         padding-top:1.5rem;
         padding-bottom:2rem;
     }}
 
-    h1,h2,h3,p,span,label{{
+    h1,h2,h3,p,span,label {{
         color:{TEXT_MAIN};
     }}
 
-    hr{{
+    hr {{
         border-color:{BORDER};
     }}
 
@@ -150,7 +124,7 @@ def inject_theme():
 
 
 # =====================================================
-# SHARED PLOTLY LAYOUT HELPER
+# SHARED PLOTLY LAYOUT
 # =====================================================
 
 def style_fig(fig, y_title="", x_title="", show_legend=True):
@@ -159,7 +133,6 @@ def style_fig(fig, y_title="", x_title="", show_legend=True):
         title="",
         paper_bgcolor=BG_CARD,
         plot_bgcolor=BG_CARD,
-
         font_color=TEXT_MAIN,
         font_size=13,
 
@@ -204,37 +177,60 @@ def style_fig(fig, y_title="", x_title="", show_legend=True):
 
 
 # =====================================================
-# SQL CONNECTION + CLEAN DATA (cached once, shared by every view)
+# SMART DATA LOADER
+# Local  : SQL Server
+# Cloud  : CSV
 # =====================================================
 
 @st.cache_data
 def load_data():
 
-    conn = pyodbc.connect(
-        "DRIVER={ODBC Driver 17 for SQL Server};"
-        "SERVER=localhost,1433;"
-        "DATABASE=OIM_DB;"
-        "UID=sa;"
-        "PWD=sayan@12345;"
-        "TrustServerCertificate=yes;"
-    )
+    try:
+        # ---------- LOCAL SQL SERVER ----------
+        conn = pyodbc.connect(
+            "DRIVER={ODBC Driver 17 for SQL Server};"
+            "SERVER=localhost,1433;"
+            "DATABASE=OIM_DB;"
+            "UID=sa;"
+            "PWD=sayan@12345;"
+            "TrustServerCertificate=yes;"
+        )
 
-    df = pd.read_sql("SELECT * FROM enriched_orders", conn)
-    conn.close()
+        df = pd.read_sql(
+            "SELECT * FROM enriched_orders",
+            conn
+        )
+
+        conn.close()
+        st.session_state["data_source"] = "SQL Server"
+
+    except Exception:
+        # ---------- STREAMLIT CLOUD ----------
+        BASE_DIR = Path(__file__).resolve().parents[2]
+        csv_path = BASE_DIR / "data" / "enriched_orders.csv"
+
+        df = pd.read_csv(csv_path)
+        st.session_state["data_source"] = "CSV"
+
+    # =================================================
+    # COMMON DATA CLEANING
+    # =================================================
 
     for col in ["order_date", "expected_date", "actual_date"]:
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")
 
-    df["customer_region"] = (
-        df["customer_region"]
-        .fillna("Unknown")
-        .str.title()
-    )
+    if "customer_region" in df.columns:
+        df["customer_region"] = (
+            df["customer_region"]
+            .fillna("Unknown")
+            .str.title()
+        )
 
-    df["delivery_delay_days"] = pd.to_numeric(
-        df["delivery_delay_days"],
-        errors="coerce"
-    ).fillna(0)
+    if "delivery_delay_days" in df.columns:
+        df["delivery_delay_days"] = pd.to_numeric(
+            df["delivery_delay_days"],
+            errors="coerce"
+        ).fillna(0)
 
     return df
