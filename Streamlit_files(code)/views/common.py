@@ -41,7 +41,7 @@ PRODUCT_PALETTE = [
 ]
 
 # =====================================================
-# DARK ENTERPRISE THEME (UNCHANGED)
+# DARK ENTERPRISE THEME
 # =====================================================
 
 def inject_theme():
@@ -53,12 +53,8 @@ def inject_theme():
         color:{TEXT_MAIN};
     }}
 
-    header[data-testid="stHeader"]{{
-        background:{BG_MAIN} !important;
-    }}
-    div[data-testid="stToolbar"]{{
-        background:{BG_MAIN} !important;
-    }}
+    header[data-testid="stHeader"],
+    div[data-testid="stToolbar"],
     div[data-testid="stDecoration"]{{
         background:{BG_MAIN} !important;
     }}
@@ -67,9 +63,12 @@ def inject_theme():
         background:{BG_CARD};
         border-right:1px solid {BORDER};
     }}
+
     section[data-testid="stSidebar"] *{{
         color:{TEXT_MAIN} !important;
     }}
+
+    /* KPI Cards */
 
     div[data-testid="stMetric"]{{
         background:{BG_CARD};
@@ -83,14 +82,10 @@ def inject_theme():
         font-size:14px !important;
     }}
 
-    div[data-testid="stMetricValue"]{{
-        color:{TEXT_MAIN} !important;
-        font-weight:700 !important;
-        opacity:1 !important;
-    }}
-
+    div[data-testid="stMetricValue"],
     div[data-testid="stMetricValue"] *{{
         color:{TEXT_MAIN} !important;
+        font-weight:700 !important;
         opacity:1 !important;
     }}
 
@@ -98,38 +93,44 @@ def inject_theme():
         color:{TEXT_MAIN} !important;
     }}
 
+    /* ===== REGION FILTER FIX ===== */
+
     div[data-baseweb="select"] > div{{
-        background:{BG_CARD} !important;
+        background:#0F172A !important;
         border:1px solid {BORDER} !important;
-        color:{TEXT_MAIN} !important;
         border-radius:10px !important;
+        color:{TEXT_MAIN} !important;
+    }}
+
+    div[data-baseweb="select"] span{{
+        color:{TEXT_MAIN} !important;
+        opacity:1 !important;
     }}
 
     div[data-baseweb="select"] input{{
         color:{TEXT_MAIN} !important;
+        -webkit-text-fill-color:{TEXT_MAIN} !important;
     }}
 
     div[data-baseweb="select"] svg{{
         fill:{TEXT_MAIN} !important;
     }}
 
-    div[data-baseweb="popover"] ul[role="listbox"]{{
+    div[role="listbox"]{{
         background:{BG_CARD} !important;
         border:1px solid {BORDER} !important;
     }}
 
-    li[role="option"]{{
+    div[role="option"]{{
         background:{BG_CARD} !important;
         color:{TEXT_MAIN} !important;
     }}
 
-    li[role="option"]:hover{{
+    div[role="option"]:hover{{
         background:{BORDER} !important;
     }}
 
-    li[aria-selected="true"]{{
-        background:{ACCENT_BLUE}33 !important;
-    }}
+    /* Plotly */
 
     div[data-testid="stPlotlyChart"]{{
         background:{BG_CARD};
@@ -137,6 +138,8 @@ def inject_theme():
         padding:10px;
         border:1px solid {BORDER};
     }}
+
+    /* DataFrame */
 
     [data-testid="stDataFrame"]{{
         border-radius:14px;
@@ -164,7 +167,7 @@ def inject_theme():
     """, unsafe_allow_html=True)
 
 # =====================================================
-# SHARED PLOTLY LAYOUT (UNCHANGED)
+# SHARED PLOTLY LAYOUT
 # =====================================================
 
 def style_fig(fig, y_title="", x_title="", show_legend=True):
@@ -236,7 +239,11 @@ def load_data():
             "TrustServerCertificate=yes;"
         )
 
-        df = pd.read_sql("SELECT * FROM enriched_orders", conn)
+        df = pd.read_sql(
+            "SELECT * FROM enriched_orders",
+            conn
+        )
+
         conn.close()
 
     except Exception:
@@ -252,15 +259,17 @@ def load_data():
         if col in df.columns:
             df[col] = pd.to_datetime(df[col], errors="coerce")
 
-    df["customer_region"] = (
-        df["customer_region"]
-        .fillna("Unknown")
-        .str.title()
-    )
+    if "customer_region" in df.columns:
+        df["customer_region"] = (
+            df["customer_region"]
+            .fillna("Unknown")
+            .str.title()
+        )
 
-    df["delivery_delay_days"] = pd.to_numeric(
-        df["delivery_delay_days"],
-        errors="coerce"
-    ).fillna(0)
+    if "delivery_delay_days" in df.columns:
+        df["delivery_delay_days"] = pd.to_numeric(
+            df["delivery_delay_days"],
+            errors="coerce"
+        ).fillna(0)
 
     return df
