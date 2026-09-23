@@ -243,7 +243,6 @@ Interactive enterprise dashboard built with **Streamlit** and connected directly
 
 Every business question returns a structured executive report.
 
-![Executive Report](screenshots/executive_report.png)
 
 ## Investigation Report Structure
 
@@ -314,52 +313,9 @@ Where are we losing operational efficiency?
 
 ---
 
-# 📁 Repository Structure
-
-```text
-Operations-Intelligence-Incident-Management-Platform
-│
-├── app.py
-├── requirements.txt
-├── docker-compose.yml
-├── README.md
-│
-├── datasets/
-│   ├── orders.csv
-│   ├── customers.csv
-│   ├── deliveries.csv
-│   ├── tickets.csv
-│   └── inventory.csv
-│
-├── workflows/
-│   ├── workflow1_etl.json
-│   ├── workflow2_ai_chat.json
-│   └── workflow3_webhook.json
-│
-├── screenshots/
-│   ├── workflow1.png
-│   ├── workflow2_3.png
-│   ├── dashboard.png
-│   ├── executive_report.png
-│   └── sql_results.png
-│
-├── views/
-│   ├── executive.py
-│   ├── customer.py
-│   ├── logistics.py
-│   ├── inventory.py
-│   ├── ai_command.py
-│   └── common.py
-│
-└── sql/
-    └── enriched_orders_schema.sql
-```
-
----
-
 # 🚀 Getting Started
 
-## Clone Repository
+## 1. Clone Repository
 
 ```bash
 git clone https://github.com/datawithsayannaha/Operations-Intelligence-Incident-Management-Platform.git
@@ -367,41 +323,37 @@ git clone https://github.com/datawithsayannaha/Operations-Intelligence-Incident-
 cd Operations-Intelligence-Incident-Management-Platform
 ```
 
-## Install Dependencies
+## 2. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Start n8n
+## 3. Start n8n (Docker)
 
 ```bash
 docker compose up -d
 ```
 
-## Run Streamlit
+## 4. Expose n8n Webhook (Cloudflare Tunnel)
+
+```bash
+cloudflared tunnel --url http://localhost:5678
+```
+
+Copy the generated **trycloudflare.com** URL and use it as the webhook endpoint for the AI Command Center.
+
+## 5. Run Streamlit
 
 ```bash
 streamlit run app.py
 ```
 
-Open:
+## 6. Open Dashboard
 
 ```text
 http://localhost:8501
 ```
-
----
-
-# 📸 Screenshots
-
-| Preview | File |
-|---------|------|
-| ETL Pipeline | `screenshots/workflow1.png` |
-| AI Agent + Webhook | `screenshots/workflow2_3.png` |
-| Executive Dashboard | `screenshots/dashboard.png` |
-| AI Executive Report | `screenshots/executive_report.png` |
-| SQL Results | `screenshots/sql_results.png` |
 
 ---
 
@@ -417,5 +369,3 @@ http://localhost:8501
 
 
 ---
-
-## ⭐ If you found this project useful, consider giving it a Star!
