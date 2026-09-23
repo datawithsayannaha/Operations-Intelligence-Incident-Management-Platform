@@ -1,0 +1,1662 @@
+{
+  "name": "05_Data_Ingestion_Inventory",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2032,
+        -112
+      ],
+      "id": "411f6d8a-8fac-4ff1-b190-04794dfecc93",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/data/orders.csv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1456,
+        -560
+      ],
+      "id": "e756833c-4bc4-4090-9401-b4f6309aca4f",
+      "name": "Read/Write Files from Disk",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fileSelector": "/data/customers.csv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1456,
+        -336
+      ],
+      "id": "c9add145-1e7d-45af-98d4-bb8330f43439",
+      "name": "Read/Write Files from Disk1",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fileSelector": "/data/deliveries.csv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1456,
+        -112
+      ],
+      "id": "1f0f014c-2737-4b5c-91a7-483abb1989ab",
+      "name": "Read/Write Files from Disk2",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fileSelector": "/data/support_tickets.csv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1456,
+        112
+      ],
+      "id": "da6c9b9d-95d2-4961-af74-11cf1e23cd06",
+      "name": "Read/Write Files from Disk3",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fileSelector": "/data/inventory.csv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1456,
+        352
+      ],
+      "id": "0c481531-b94c-4189-9342-3302f660a4d7",
+      "name": "Read/Write Files from Disk4",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {
+          "headerRow": true
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1264,
+        -560
+      ],
+      "id": "438cfe4a-ff97-4071-b287-edc69bc68b07",
+      "name": "Extract from File orders",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {
+          "headerRow": true
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1264,
+        -336
+      ],
+      "id": "f7ebba66-e6ab-4229-9d3b-c554cc26e40d",
+      "name": "Extract from File customers",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {
+          "headerRow": true
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1264,
+        -112
+      ],
+      "id": "1b645c0e-2875-4100-8605-4c3159867b29",
+      "name": "Extract from File deliveries",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {
+          "headerRow": true
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1264,
+        112
+      ],
+      "id": "9dfdc1e3-7376-449a-8893-ad5578beab1f",
+      "name": "Extract from File support tickets",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "options": {
+          "headerRow": true
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1264,
+        352
+      ],
+      "id": "48c2daf2-b1cf-433f-acd7-f011a681d848",
+      "name": "Extract from File inventory",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\n# 1. Get all n8n input items\ndata = _items\n\n# 2. Create DataFrame\nrows = [item[\"json\"] for item in data]\ndf = pd.DataFrame(rows)\n\n# 3. Remove duplicate orders\ndf = df.drop_duplicates(\n    subset=[\"order_id\"],\n    keep=\"first\"\n)\n\n# 4. Clean text columns\ntext_columns = [\n    \"order_id\",\n    \"customer_id\",\n    \"product_id\",\n    \"payment_status\",\n    \"order_status\",\n    \"region\"\n]\n\nfor col in text_columns:\n    df[col] = df[col].astype(\"string\").str.strip()\n\n# Empty strings → missing\ndf = df.replace(r\"^\\s*$\", pd.NA, regex=True)\n\n# 5. Clean date\ndf[\"order_date\"] = pd.to_datetime(\n    df[\"order_date\"],\n    errors=\"coerce\"\n)\n\n# 6. Clean quantity\ndf[\"quantity\"] = pd.to_numeric(\n    df[\"quantity\"],\n    errors=\"coerce\"\n)\n\n# Negative quantity → missing\ndf.loc[df[\"quantity\"] < 0, \"quantity\"] = pd.NA\n\n# 7. Clean order value\ndf[\"order_value\"] = pd.to_numeric(\n    df[\"order_value\"],\n    errors=\"coerce\"\n)\n\n# Negative order value → missing\ndf.loc[df[\"order_value\"] < 0, \"order_value\"] = pd.NA\n\n# 8. Remove rows missing critical IDs/date\ndf = df.dropna(\n    subset=[\n        \"order_id\",\n        \"customer_id\",\n        \"product_id\",\n        \"order_date\"\n    ]\n)\n\n# 9. Calculate value per unit\ndf[\"value_per_unit\"] = (\n    df[\"order_value\"] / df[\"quantity\"]\n).round(2)\n\n# Invalid quantity → null\ndf.loc[\n    (df[\"quantity\"].isna()) | (df[\"quantity\"] <= 0),\n    \"value_per_unit\"\n] = pd.NA\n\n# 10. Order value category\ndf[\"order_value_category\"] = pd.cut(\n    df[\"order_value\"],\n    bins=[\n        -float(\"inf\"),\n        5000,\n        15000,\n        float(\"inf\")\n    ],\n    labels=[\n        \"Low\",\n        \"Medium\",\n        \"High\"\n    ]\n)\n\n# 11. Date → string\ndf[\"order_date\"] = df[\"order_date\"].dt.strftime(\n    \"%Y-%m-%d\"\n)\n\n# 12. Convert missing values to None\ndf = df.fillna(\"\")\n\n# 13. Convert DataFrame back to n8n items\nreturn [\n    {\n        \"json\": row\n    }\n    for row in df.to_dict(orient=\"records\")\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        -560
+      ],
+      "id": "a5ba18fd-5866-4478-b106-a7d72a726138",
+      "name": "Clean Orders Code in Python",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\n# 1. Get all n8n input items\ndata = _items\n\n# 2. Create DataFrame\nrows = [item[\"json\"] for item in data]\ndf = pd.DataFrame(rows)\n\n# 3. Remove duplicate customers\ndf = df.drop_duplicates(\n    subset=[\"customer_id\"],\n    keep=\"first\"\n)\n\n# 4. Clean text columns\ntext_columns = [\n    \"customer_id\",\n    \"customer_name\",\n    \"region\",\n    \"customer_segment\"\n]\n\nfor col in text_columns:\n    df[col] = df[col].astype(\"string\").str.strip()\n\n# Empty strings → missing\ndf = df.replace(r\"^\\s*$\", pd.NA, regex=True)\n\n# 5. Clean signup date\ndf[\"signup_date\"] = pd.to_datetime(\n    df[\"signup_date\"],\n    errors=\"coerce\"\n)\n\n# 6. Clean total orders\ndf[\"total_orders\"] = pd.to_numeric(\n    df[\"total_orders\"],\n    errors=\"coerce\"\n)\n\n# Negative orders → missing\ndf.loc[\n    df[\"total_orders\"] < 0,\n    \"total_orders\"\n] = pd.NA\n\n# 7. Clean customer value\ndf[\"customer_value\"] = pd.to_numeric(\n    df[\"customer_value\"],\n    errors=\"coerce\"\n)\n\n# Negative customer value → missing\ndf.loc[\n    df[\"customer_value\"] < 0,\n    \"customer_value\"\n] = pd.NA\n\n# 8. Remove rows missing critical fields\ndf = df.dropna(\n    subset=[\n        \"customer_id\",\n        \"customer_name\",\n        \"signup_date\"\n    ]\n)\n\n# 9. Create customer value category\ndf[\"customer_value_category\"] = pd.cut(\n    df[\"customer_value\"],\n    bins=[\n        -float(\"inf\"),\n        5000,\n        15000,\n        float(\"inf\")\n    ],\n    labels=[\n        \"Low\",\n        \"Medium\",\n        \"High\"\n    ]\n)\n\n# 10. Date → string\ndf[\"signup_date\"] = df[\"signup_date\"].dt.strftime(\n    \"%Y-%m-%d\"\n)\n\n# 11. Round customer value\ndf[\"customer_value\"] = df[\"customer_value\"].round(2)\n\n# 12. Convert missing values to empty string\ndf = df.fillna(\"\")\n\n# 13. Convert DataFrame back to n8n items\nreturn [\n    {\n        \"json\": row\n    }\n    for row in df.to_dict(orient=\"records\")\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        -336
+      ],
+      "id": "6c7c32db-cc41-49f2-9c15-a8f8dfa10b29",
+      "name": "Clean Customers Code in Python",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\n# 1. Get all n8n input items\ndata = _items\n\n# 2. Create DataFrame\nrows = [item[\"json\"] for item in data]\ndf = pd.DataFrame(rows)\n\n# 3. Remove duplicate deliveries\ndf = df.drop_duplicates(\n    subset=[\"delivery_id\"],\n    keep=\"first\"\n)\n\n# 4. Clean text columns\ntext_columns = [\n    \"delivery_id\",\n    \"order_id\",\n    \"warehouse_id\",\n    \"carrier\",\n    \"delivery_status\"\n]\n\nfor col in text_columns:\n    df[col] = df[col].astype(\"string\").str.strip()\n\n# Empty strings → missing\ndf = df.replace(r\"^\\s*$\", pd.NA, regex=True)\n\n# 5. Clean dates\ndate_columns = [\n    \"dispatch_date\",\n    \"expected_date\",\n    \"actual_date\"\n]\n\nfor col in date_columns:\n    df[col] = pd.to_datetime(\n        df[col],\n        errors=\"coerce\"\n    )\n\n# 6. Clean delivery cost\ndf[\"delivery_cost\"] = pd.to_numeric(\n    df[\"delivery_cost\"],\n    errors=\"coerce\"\n)\n\n# Negative delivery cost → missing\ndf.loc[\n    df[\"delivery_cost\"] < 0,\n    \"delivery_cost\"\n] = pd.NA\n\n# 7. Remove rows missing critical fields\ndf = df.dropna(\n    subset=[\n        \"delivery_id\",\n        \"order_id\",\n        \"warehouse_id\",\n        \"dispatch_date\",\n        \"expected_date\"\n    ]\n)\n\n# 8. Create delivery delay days\ndf[\"delivery_delay_days\"] = (\n    df[\"actual_date\"] - df[\"expected_date\"]\n).dt.days\n\n# 9. Classify delivery performance\ndf[\"delivery_performance\"] = pd.cut(\n    df[\"delivery_delay_days\"],\n    bins=[\n        -float(\"inf\"),\n        -1,\n        0,\n        2,\n        float(\"inf\")\n    ],\n    labels=[\n        \"Early\",\n        \"On Time\",\n        \"Slightly Delayed\",\n        \"Delayed\"\n    ]\n)\n\n# 10. Actual date → string\ndf[\"dispatch_date\"] = df[\"dispatch_date\"].dt.strftime(\n    \"%Y-%m-%d\"\n)\n\ndf[\"expected_date\"] = df[\"expected_date\"].dt.strftime(\n    \"%Y-%m-%d\"\n)\n\ndf[\"actual_date\"] = df[\"actual_date\"].dt.strftime(\n    \"%Y-%m-%d\"\n)\n\n# 11. Round delivery cost\ndf[\"delivery_cost\"] = df[\"delivery_cost\"].round(2)\n\n# 12. Convert missing values to empty string\ndf = df.fillna(\"\")\n\n# 13. Convert DataFrame back to n8n items\nreturn [\n    {\n        \"json\": row\n    }\n    for row in df.to_dict(orient=\"records\")\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        -112
+      ],
+      "id": "e6788702-bb72-4be2-b3ae-2c953ea7aa6d",
+      "name": "Clean Deliveries Code in Python",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\n# 1. Get all n8n input items\ndata = _items\n\n# 2. Create DataFrame\nrows = [item[\"json\"] for item in data]\ndf = pd.DataFrame(rows)\n\n# 3. Remove duplicate tickets\ndf = df.drop_duplicates(\n    subset=[\"ticket_id\"],\n    keep=\"first\"\n)\n\n# 4. Clean text columns\ntext_columns = [\n    \"ticket_id\",\n    \"customer_id\",\n    \"order_id\",\n    \"category\",\n    \"priority\",\n    \"ticket_status\",\n    \"sentiment\"\n]\n\nfor col in text_columns:\n    df[col] = df[col].astype(\"string\").str.strip()\n\n# Empty strings → missing\ndf = df.replace(r\"^\\s*$\", pd.NA, regex=True)\n\n# 5. Clean created date\ndf[\"created_at\"] = pd.to_datetime(\n    df[\"created_at\"],\n    errors=\"coerce\"\n)\n\n# 6. Clean resolution hours\ndf[\"resolution_hours\"] = pd.to_numeric(\n    df[\"resolution_hours\"],\n    errors=\"coerce\"\n)\n\n# Negative resolution time → missing\ndf.loc[\n    df[\"resolution_hours\"] < 0,\n    \"resolution_hours\"\n] = pd.NA\n\n# 7. Remove rows missing critical fields\ndf = df.dropna(\n    subset=[\n        \"ticket_id\",\n        \"customer_id\",\n        \"created_at\",\n        \"category\",\n        \"priority\"\n    ]\n)\n\n# 8. Create resolution-time category\ndf[\"resolution_category\"] = pd.cut(\n    df[\"resolution_hours\"],\n    bins=[\n        -float(\"inf\"),\n        4,\n        12,\n        24,\n        float(\"inf\")\n    ],\n    labels=[\n        \"Very Fast\",\n        \"Fast\",\n        \"Moderate\",\n        \"Slow\"\n    ]\n)\n\n# Convert categorical → string BEFORE fillna\ndf[\"resolution_category\"] = (\n    df[\"resolution_category\"]\n    .astype(\"string\")\n)\n\n# 9. Create customer issue flag\ndf[\"customer_issue_flag\"] = df[\"sentiment\"].map(\n    {\n        \"Negative\": \"Attention Required\",\n        \"Neutral\": \"Normal\",\n        \"Positive\": \"Positive\"\n    }\n)\n\n# Missing sentiment → Unknown\ndf[\"customer_issue_flag\"] = (\n    df[\"customer_issue_flag\"]\n    .fillna(\"Unknown\")\n)\n\n# 10. Date → string\ndf[\"created_at\"] = df[\"created_at\"].dt.strftime(\n    \"%Y-%m-%d\"\n)\n\n# 11. Round resolution hours\ndf[\"resolution_hours\"] = (\n    df[\"resolution_hours\"].round(2)\n)\n\n# 12. Convert missing values to empty string\ndf = df.fillna(\"\")\n\n# 13. Convert DataFrame back to n8n items\nreturn [\n    {\n        \"json\": row\n    }\n    for row in df.to_dict(orient=\"records\")\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        112
+      ],
+      "id": "15e38be3-454b-4767-b52c-59c47839805e",
+      "name": "Clean Support Tickets Code in Python",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\n# 1. Get all n8n input items\ndata = _items\n\n# 2. Create DataFrame\nrows = [item[\"json\"] for item in data]\ndf = pd.DataFrame(rows)\n\n# 3. Remove duplicate product-warehouse records\ndf = df.drop_duplicates(\n    subset=[\"product_id\", \"warehouse_id\"],\n    keep=\"first\"\n)\n\n# 4. Clean text columns\ntext_columns = [\n    \"product_id\",\n    \"warehouse_id\",\n    \"supplier\"\n]\n\nfor col in text_columns:\n    df[col] = df[col].astype(\"string\").str.strip()\n\n# Empty strings → missing\ndf = df.replace(r\"^\\s*$\", pd.NA, regex=True)\n\n# 5. Clean numeric columns\nnumeric_columns = [\n    \"stock_available\",\n    \"reorder_level\",\n    \"daily_demand\"\n]\n\nfor col in numeric_columns:\n    df[col] = pd.to_numeric(\n        df[col],\n        errors=\"coerce\"\n    )\n\n# Negative stock → missing\ndf.loc[\n    df[\"stock_available\"] < 0,\n    \"stock_available\"\n] = pd.NA\n\n# Negative reorder level → missing\ndf.loc[\n    df[\"reorder_level\"] < 0,\n    \"reorder_level\"\n] = pd.NA\n\n# Negative demand → missing\ndf.loc[\n    df[\"daily_demand\"] < 0,\n    \"daily_demand\"\n] = pd.NA\n\n# 6. Clean last restock date\ndf[\"last_restock_date\"] = pd.to_datetime(\n    df[\"last_restock_date\"],\n    errors=\"coerce\"\n)\n\n# 7. Remove rows missing critical fields\ndf = df.dropna(\n    subset=[\n        \"product_id\",\n        \"warehouse_id\",\n        \"last_restock_date\"\n    ]\n)\n\n# 8. Calculate estimated days of stock\ndf[\"estimated_stock_days\"] = (\n    df[\"stock_available\"] / df[\"daily_demand\"]\n).round(2)\n\n# Invalid / zero demand → empty\ndf.loc[\n    (df[\"daily_demand\"].isna()) |\n    (df[\"daily_demand\"] <= 0),\n    \"estimated_stock_days\"\n] = pd.NA\n\n# 9. Create inventory status\ndf[\"inventory_status\"] = \"Healthy\"\n\ndf.loc[\n    df[\"stock_available\"] <= df[\"reorder_level\"],\n    \"inventory_status\"\n] = \"Reorder Required\"\n\ndf.loc[\n    (df[\"stock_available\"] > df[\"reorder_level\"]) &\n    (df[\"estimated_stock_days\"] <= 7),\n    \"inventory_status\"\n] = \"Low Stock\"\n\n# 10. Date → string\ndf[\"last_restock_date\"] = (\n    df[\"last_restock_date\"]\n    .dt.strftime(\"%Y-%m-%d\")\n)\n\n# 11. Round numeric values\ndf[\"daily_demand\"] = df[\"daily_demand\"].round(2)\n\ndf[\"estimated_stock_days\"] = (\n    df[\"estimated_stock_days\"].round(2)\n)\n\n# 12. Convert missing values to empty string\ndf = df.fillna(\"\")\n\n# 13. Convert DataFrame back to n8n items\nreturn [\n    {\n        \"json\": row\n    }\n    for row in df.to_dict(orient=\"records\")\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        352
+      ],
+      "id": "88c85a8e-de91-434b-bb3d-306c173155fd",
+      "name": "Clean Inventory Code in Python",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\n# 1. Get all cleaned Orders items\ndata = _items\n\n# 2. Create DataFrame\nrows = [item[\"json\"] for item in data]\ndf = pd.DataFrame(rows)\n\n# 3. Total cleaned rows\nclean_rows = len(df)\n\n# 4. Check required columns\nrequired_columns = [\n    \"order_id\",\n    \"customer_id\",\n    \"product_id\",\n    \"order_date\",\n    \"quantity\",\n    \"order_value\"\n]\n\n# 5. Missing values\nmissing_order_id = df[\"order_id\"].isna().sum()\nmissing_customer_id = df[\"customer_id\"].isna().sum()\nmissing_product_id = df[\"product_id\"].isna().sum()\nmissing_order_date = df[\"order_date\"].isna().sum()\n\n# 6. Convert numeric columns for validation\nquantity = pd.to_numeric(\n    df[\"quantity\"],\n    errors=\"coerce\"\n)\n\norder_value = pd.to_numeric(\n    df[\"order_value\"],\n    errors=\"coerce\"\n)\n\n# 7. Invalid quantity\ninvalid_quantity = quantity.isna().sum()\n\n# Non-positive quantity\nnon_positive_quantity = (\n    quantity <= 0\n).sum()\n\n# 8. Invalid order value\ninvalid_order_value = order_value.isna().sum()\n\n# Non-positive order value\nnon_positive_order_value = (\n    order_value <= 0\n).sum()\n\n# 9. Duplicate order IDs\nduplicate_rows = (\n    df[\"order_id\"].duplicated(keep=False)\n).sum()\n\nduplicate_order_ids = (\n    df[\"order_id\"].duplicated().sum()\n)\n\n# 10. Missing dates\nmissing_dates = df[\"order_date\"].isna().sum()\n\n# 11. Calculate total issues\ntotal_issues = (\n    missing_order_id\n    + missing_customer_id\n    + missing_product_id\n    + missing_order_date\n    + invalid_quantity\n    + non_positive_quantity\n    + invalid_order_value\n    + non_positive_order_value\n    + duplicate_order_ids\n)\n\n# 12. Determine quality status\nif total_issues == 0:\n    quality_status = \"Pass\"\nelif total_issues <= 20:\n    quality_status = \"Review\"\nelse:\n    quality_status = \"Fail\"\n\n# 13. Create DQ summary\ndq_summary = {\n    \"dataset\": \"Orders\",\n    \"clean_rows\": clean_rows,\n    \"missing_order_id\": int(missing_order_id),\n    \"missing_customer_id\": int(missing_customer_id),\n    \"missing_product_id\": int(missing_product_id),\n    \"missing_order_date\": int(missing_order_date),\n    \"invalid_quantity\": int(invalid_quantity),\n    \"non_positive_quantity\": int(non_positive_quantity),\n    \"invalid_order_value\": int(invalid_order_value),\n    \"non_positive_order_value\": int(non_positive_order_value),\n    \"duplicate_rows\": int(duplicate_rows),\n    \"duplicate_order_ids\": int(duplicate_order_ids),\n    \"total_issues\": int(total_issues),\n    \"quality_status\": quality_status\n}\n\n# 14. Return ONE DQ summary item\nreturn [\n    {\n        \"json\": dq_summary\n    }\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -592,
+        -560
+      ],
+      "id": "112b4fe2-a974-4082-830e-209551bb0aea",
+      "name": "DQ_Check_Orders in Python",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\n# 1. Get all cleaned Customer items\ndata = _items\n\n# 2. Create DataFrame\nrows = [item[\"json\"] for item in data]\ndf = pd.DataFrame(rows)\n\n# 3. Total cleaned rows\nclean_rows = len(df)\n\n# 4. Missing critical fields\nmissing_customer_id = df[\"customer_id\"].isna().sum()\nmissing_customer_name = df[\"customer_name\"].isna().sum()\nmissing_signup_date = df[\"signup_date\"].isna().sum()\n\n# 5. Convert numeric columns for validation\ntotal_orders = pd.to_numeric(\n    df[\"total_orders\"],\n    errors=\"coerce\"\n)\n\ncustomer_value = pd.to_numeric(\n    df[\"customer_value\"],\n    errors=\"coerce\"\n)\n\n# 6. Invalid total orders\ninvalid_total_orders = total_orders.isna().sum()\n\n# Non-positive total orders\nnon_positive_total_orders = (\n    total_orders <= 0\n).sum()\n\n# 7. Invalid customer value\ninvalid_customer_value = customer_value.isna().sum()\n\n# Non-positive customer value\nnon_positive_customer_value = (\n    customer_value <= 0\n).sum()\n\n# 8. Duplicate customer IDs\nduplicate_rows = (\n    df[\"customer_id\"].duplicated(keep=False)\n).sum()\n\nduplicate_customer_ids = (\n    df[\"customer_id\"].duplicated().sum()\n)\n\n# 9. Total issues\ntotal_issues = (\n    missing_customer_id\n    + missing_customer_name\n    + missing_signup_date\n    + invalid_total_orders\n    + non_positive_total_orders\n    + invalid_customer_value\n    + non_positive_customer_value\n    + duplicate_customer_ids\n)\n\n# 10. Determine quality status\nif total_issues == 0:\n    quality_status = \"Pass\"\nelif total_issues <= 20:\n    quality_status = \"Review\"\nelse:\n    quality_status = \"Fail\"\n\n# 11. Create DQ summary\ndq_summary = {\n    \"dataset\": \"Customers\",\n    \"clean_rows\": clean_rows,\n    \"missing_customer_id\": int(missing_customer_id),\n    \"missing_customer_name\": int(missing_customer_name),\n    \"missing_signup_date\": int(missing_signup_date),\n    \"invalid_total_orders\": int(invalid_total_orders),\n    \"non_positive_total_orders\": int(non_positive_total_orders),\n    \"invalid_customer_value\": int(invalid_customer_value),\n    \"non_positive_customer_value\": int(non_positive_customer_value),\n    \"duplicate_rows\": int(duplicate_rows),\n    \"duplicate_customer_ids\": int(duplicate_customer_ids),\n    \"total_issues\": int(total_issues),\n    \"quality_status\": quality_status\n}\n\n# 12. Return ONE DQ summary item\nreturn [\n    {\n        \"json\": dq_summary\n    }\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -816,
+        -336
+      ],
+      "id": "ff228bf7-c507-4456-ba47-7f0269eed506",
+      "name": "DQ_Check_Customers in Python",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\n# 1. Get all cleaned Delivery items\ndata = _items\n\n# 2. Create DataFrame\nrows = [item[\"json\"] for item in data]\ndf = pd.DataFrame(rows)\n\n# 3. Total cleaned rows\nclean_rows = len(df)\n\n# 4. Missing critical fields\nmissing_delivery_id = df[\"delivery_id\"].isna().sum()\nmissing_order_id = df[\"order_id\"].isna().sum()\nmissing_warehouse_id = df[\"warehouse_id\"].isna().sum()\nmissing_dispatch_date = df[\"dispatch_date\"].isna().sum()\nmissing_expected_date = df[\"expected_date\"].isna().sum()\n\n# 5. Clean and validate delivery cost\ndelivery_cost = pd.to_numeric(\n    df[\"delivery_cost\"],\n    errors=\"coerce\"\n)\n\ninvalid_delivery_cost = delivery_cost.isna().sum()\n\nnon_positive_delivery_cost = (\n    delivery_cost <= 0\n).sum()\n\n# 6. Validate delivery dates\ndispatch_date = pd.to_datetime(\n    df[\"dispatch_date\"],\n    errors=\"coerce\"\n)\n\nexpected_date = pd.to_datetime(\n    df[\"expected_date\"],\n    errors=\"coerce\"\n)\n\nactual_date = pd.to_datetime(\n    df[\"actual_date\"],\n    errors=\"coerce\"\n)\n\ninvalid_dispatch_date = dispatch_date.isna().sum()\ninvalid_expected_date = expected_date.isna().sum()\ninvalid_actual_date = actual_date.isna().sum()\n\n# 7. Check logical date order\ninvalid_date_sequence = (\n    (dispatch_date > expected_date) |\n    (actual_date < dispatch_date)\n).sum()\n\n# 8. Duplicate delivery IDs\nduplicate_rows = (\n    df[\"delivery_id\"].duplicated(keep=False)\n).sum()\n\nduplicate_delivery_ids = (\n    df[\"delivery_id\"].duplicated().sum()\n)\n\n# 9. Total issues\ntotal_issues = (\n    missing_delivery_id\n    + missing_order_id\n    + missing_warehouse_id\n    + missing_dispatch_date\n    + missing_expected_date\n    + invalid_delivery_cost\n    + non_positive_delivery_cost\n    + invalid_dispatch_date\n    + invalid_expected_date\n    + invalid_actual_date\n    + invalid_date_sequence\n    + duplicate_delivery_ids\n)\n\n# 10. Determine quality status\nif total_issues == 0:\n    quality_status = \"Pass\"\nelif total_issues <= 20:\n    quality_status = \"Review\"\nelse:\n    quality_status = \"Fail\"\n\n# 11. Create DQ summary\ndq_summary = {\n    \"dataset\": \"Deliveries\",\n    \"clean_rows\": clean_rows,\n    \"missing_delivery_id\": int(missing_delivery_id),\n    \"missing_order_id\": int(missing_order_id),\n    \"missing_warehouse_id\": int(missing_warehouse_id),\n    \"missing_dispatch_date\": int(missing_dispatch_date),\n    \"missing_expected_date\": int(missing_expected_date),\n    \"invalid_delivery_cost\": int(invalid_delivery_cost),\n    \"non_positive_delivery_cost\": int(non_positive_delivery_cost),\n    \"invalid_dispatch_date\": int(invalid_dispatch_date),\n    \"invalid_expected_date\": int(invalid_expected_date),\n    \"invalid_actual_date\": int(invalid_actual_date),\n    \"invalid_date_sequence\": int(invalid_date_sequence),\n    \"duplicate_rows\": int(duplicate_rows),\n    \"duplicate_delivery_ids\": int(duplicate_delivery_ids),\n    \"total_issues\": int(total_issues),\n    \"quality_status\": quality_status\n}\n\n# 12. Return ONE DQ summary item\nreturn [\n    {\n        \"json\": dq_summary\n    }\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -816,
+        -112
+      ],
+      "id": "f7377329-3f7f-4cb4-aded-6a92557b2daa",
+      "name": "DQ_Check_Deliveries in Python",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\n# 1. Get all cleaned Ticket items\ndata = _items\n\n# 2. Create DataFrame\nrows = [item[\"json\"] for item in data]\ndf = pd.DataFrame(rows)\n\n# 3. Total cleaned rows\nclean_rows = len(df)\n\n# 4. Missing critical fields\nmissing_ticket_id = df[\"ticket_id\"].isna().sum()\nmissing_customer_id = df[\"customer_id\"].isna().sum()\nmissing_created_at = df[\"created_at\"].isna().sum()\nmissing_category = df[\"category\"].isna().sum()\nmissing_priority = df[\"priority\"].isna().sum()\n\n# 5. Validate resolution hours\nresolution_hours = pd.to_numeric(\n    df[\"resolution_hours\"],\n    errors=\"coerce\"\n)\n\ninvalid_resolution_hours = resolution_hours.isna().sum()\n\nnon_positive_resolution_hours = (\n    resolution_hours <= 0\n).sum()\n\n# 6. Validate created date\ncreated_at = pd.to_datetime(\n    df[\"created_at\"],\n    errors=\"coerce\"\n)\n\ninvalid_created_at = created_at.isna().sum()\n\n# 7. Duplicate ticket IDs\nduplicate_rows = (\n    df[\"ticket_id\"].duplicated(keep=False)\n).sum()\n\nduplicate_ticket_ids = (\n    df[\"ticket_id\"].duplicated().sum()\n)\n\n# 8. Total issues\ntotal_issues = (\n    missing_ticket_id\n    + missing_customer_id\n    + missing_created_at\n    + missing_category\n    + missing_priority\n    + invalid_resolution_hours\n    + non_positive_resolution_hours\n    + invalid_created_at\n    + duplicate_ticket_ids\n)\n\n# 9. Determine quality status\nif total_issues == 0:\n    quality_status = \"Pass\"\nelif total_issues <= 20:\n    quality_status = \"Review\"\nelse:\n    quality_status = \"Fail\"\n\n# 10. Create DQ summary\ndq_summary = {\n    \"dataset\": \"Support Tickets\",\n    \"clean_rows\": clean_rows,\n    \"missing_ticket_id\": int(missing_ticket_id),\n    \"missing_customer_id\": int(missing_customer_id),\n    \"missing_created_at\": int(missing_created_at),\n    \"missing_category\": int(missing_category),\n    \"missing_priority\": int(missing_priority),\n    \"invalid_resolution_hours\": int(invalid_resolution_hours),\n    \"non_positive_resolution_hours\": int(non_positive_resolution_hours),\n    \"invalid_created_at\": int(invalid_created_at),\n    \"duplicate_rows\": int(duplicate_rows),\n    \"duplicate_ticket_ids\": int(duplicate_ticket_ids),\n    \"total_issues\": int(total_issues),\n    \"quality_status\": quality_status\n}\n\n# 11. Return ONE DQ summary item\nreturn [\n    {\n        \"json\": dq_summary\n    }\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -816,
+        112
+      ],
+      "id": "167392c4-4dd4-43f0-a903-40eb37fc2485",
+      "name": "DQ_Check_Tickets in Python",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\n# 1. Get all cleaned Inventory items\ndata = _items\n\n# 2. Create DataFrame\nrows = [item[\"json\"] for item in data]\ndf = pd.DataFrame(rows)\n\n# 3. Total cleaned rows\nclean_rows = len(df)\n\n# 4. Missing critical fields\nmissing_product_id = df[\"product_id\"].isna().sum()\nmissing_warehouse_id = df[\"warehouse_id\"].isna().sum()\nmissing_restock_date = df[\"last_restock_date\"].isna().sum()\n\n# 5. Validate numeric fields\nstock_available = pd.to_numeric(\n    df[\"stock_available\"],\n    errors=\"coerce\"\n)\n\nreorder_level = pd.to_numeric(\n    df[\"reorder_level\"],\n    errors=\"coerce\"\n)\n\ndaily_demand = pd.to_numeric(\n    df[\"daily_demand\"],\n    errors=\"coerce\"\n)\n\n# 6. Invalid numeric values\ninvalid_stock_available = stock_available.isna().sum()\ninvalid_reorder_level = reorder_level.isna().sum()\ninvalid_daily_demand = daily_demand.isna().sum()\n\n# 7. Non-positive values\nnon_positive_stock_available = (\n    stock_available <= 0\n).sum()\n\nnon_positive_reorder_level = (\n    reorder_level <= 0\n).sum()\n\nnon_positive_daily_demand = (\n    daily_demand <= 0\n).sum()\n\n# 8. Validate restock date\nlast_restock_date = pd.to_datetime(\n    df[\"last_restock_date\"],\n    errors=\"coerce\"\n)\n\ninvalid_restock_date = last_restock_date.isna().sum()\n\n# 9. Duplicate product-warehouse combinations\nduplicate_rows = (\n    df.duplicated(\n        subset=[\"product_id\", \"warehouse_id\"],\n        keep=False\n    )\n).sum()\n\nduplicate_product_warehouse = (\n    df.duplicated(\n        subset=[\"product_id\", \"warehouse_id\"]\n    ).sum()\n)\n\n# 10. Total issues\ntotal_issues = (\n    missing_product_id\n    + missing_warehouse_id\n    + missing_restock_date\n    + invalid_stock_available\n    + invalid_reorder_level\n    + invalid_daily_demand\n    + non_positive_stock_available\n    + non_positive_reorder_level\n    + non_positive_daily_demand\n    + invalid_restock_date\n    + duplicate_product_warehouse\n)\n\n# 11. Determine quality status\nif total_issues == 0:\n    quality_status = \"Pass\"\nelif total_issues <= 20:\n    quality_status = \"Review\"\nelse:\n    quality_status = \"Fail\"\n\n# 12. Create DQ summary\ndq_summary = {\n    \"dataset\": \"Inventory\",\n    \"clean_rows\": clean_rows,\n    \"missing_product_id\": int(missing_product_id),\n    \"missing_warehouse_id\": int(missing_warehouse_id),\n    \"missing_restock_date\": int(missing_restock_date),\n    \"invalid_stock_available\": int(invalid_stock_available),\n    \"invalid_reorder_level\": int(invalid_reorder_level),\n    \"invalid_daily_demand\": int(invalid_daily_demand),\n    \"non_positive_stock_available\": int(non_positive_stock_available),\n    \"non_positive_reorder_level\": int(non_positive_reorder_level),\n    \"non_positive_daily_demand\": int(non_positive_daily_demand),\n    \"invalid_restock_date\": int(invalid_restock_date),\n    \"duplicate_rows\": int(duplicate_rows),\n    \"duplicate_product_warehouse\": int(duplicate_product_warehouse),\n    \"total_issues\": int(total_issues),\n    \"quality_status\": quality_status\n}\n\n# 13. Return ONE DQ summary item\nreturn [\n    {\n        \"json\": dq_summary\n    }\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -816,
+        352
+      ],
+      "id": "915c7e29-e8a7-4a8f-9186-ed0646c69f36",
+      "name": "DQ_Check_Inventory in Python",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -400,
+        -464
+      ],
+      "id": "17e03bb2-cbc0-4946-9563-a6073f96579c",
+      "name": "Merge 1",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -224,
+        -256
+      ],
+      "id": "4409799a-7c64-4076-a963-886e4e62bcb4",
+      "name": "Merge 2",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -48,
+        -48
+      ],
+      "id": "058fa3d9-8b16-4c9f-be8c-5247906939e2",
+      "name": "Merge 3",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        160,
+        192
+      ],
+      "id": "a0df0b82-6125-4e55-a1b3-5c53f4ae93c3",
+      "name": "Merge 4",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\ndata = _items\n\nrows = [item[\"json\"] for item in data]\ndf = pd.DataFrame(rows)\n\ndatasets = []\n\nfor _, row in df.iterrows():\n    datasets.append({\n        \"dataset\": row[\"dataset\"],\n        \"clean_rows\": int(row[\"clean_rows\"]),\n        \"total_issues\": int(row[\"total_issues\"]),\n        \"quality_status\": row[\"quality_status\"]\n    })\n\ntotal_clean_rows = sum(\n    item[\"clean_rows\"] for item in datasets\n)\n\ntotal_dq_issues = sum(\n    item[\"total_issues\"] for item in datasets\n)\n\npassed_datasets = sum(\n    1 for item in datasets\n    if item[\"quality_status\"] == \"Pass\"\n)\n\nfailed_datasets = sum(\n    1 for item in datasets\n    if item[\"quality_status\"] == \"Fail\"\n)\n\noverall_quality_status = (\n    \"Pass\" if failed_datasets == 0 else \"Fail\"\n)\n\nreturn [\n    {\n        \"json\": {\n            \"datasets\": datasets,\n            \"overall_summary\": {\n                \"total_clean_rows\": total_clean_rows,\n                \"total_dq_issues\": total_dq_issues,\n                \"passed_datasets\": passed_datasets,\n                \"failed_datasets\": failed_datasets,\n                \"overall_quality_status\": overall_quality_status\n            }\n        }\n    }\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        416
+      ],
+      "id": "4d872c34-9e90-4b69-ba95-9150909d29f6",
+      "name": "DQ_Summary_Report in Python",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "IF OBJECT_ID('customers', 'U') IS NULL\nCREATE TABLE customers (\n    customer_id VARCHAR(20) PRIMARY KEY,\n    customer_name VARCHAR(100),\n    region VARCHAR(50),\n    customer_segment VARCHAR(30),\n    signup_date DATE,\n    total_orders INT,\n    customer_value DECIMAL(12,2)\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        -432
+      ],
+      "id": "38beef81-bb29-4cb0-bc17-728710442062",
+      "name": "SQL_Customers",
+      "executeOnce": true,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "IF OBJECT_ID('deliveries', 'U') IS NOT NULL\n    DROP TABLE deliveries;\n\nCREATE TABLE deliveries (\n    delivery_id VARCHAR(20) PRIMARY KEY,\n    order_id VARCHAR(20),\n    warehouse_id VARCHAR(20),\n    carrier VARCHAR(50),\n    dispatch_date DATE,\n    expected_date DATE,\n    actual_date DATE,\n    delivery_status VARCHAR(30),\n    delivery_cost DECIMAL(10,2)\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        -192
+      ],
+      "id": "1c736c0d-8fa2-47f1-908b-d6a8ad55ac91",
+      "name": "SQL_Deliveries",
+      "executeOnce": true,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "IF OBJECT_ID('support_tickets', 'U') IS NULL\nCREATE TABLE support_tickets (\n    ticket_id VARCHAR(20) PRIMARY KEY,\n    customer_id VARCHAR(20),\n    order_id VARCHAR(20),\n    created_at DATE,\n    category VARCHAR(50),\n    priority VARCHAR(20),\n    resolution_hours DECIMAL(8,2),\n    ticket_status VARCHAR(30),\n    sentiment VARCHAR(20),\n    resolution_category VARCHAR(20),\n    customer_issue_flag VARCHAR(30)\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        16
+      ],
+      "id": "840100bc-3c50-40c0-94f8-265c6d647791",
+      "name": "SQL_Tickets",
+      "executeOnce": true,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "IF OBJECT_ID('inventory', 'U') IS NULL\nCREATE TABLE inventory (\n    product_id VARCHAR(20),\n    warehouse_id VARCHAR(20),\n    stock_available INT,\n    reorder_level INT,\n    daily_demand DECIMAL(10,2),\n    last_restock_date DATE,\n    supplier VARCHAR(100),\n    estimated_stock_days DECIMAL(10,2),\n    inventory_status VARCHAR(30),\n    PRIMARY KEY (product_id, warehouse_id)\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        416
+      ],
+      "id": "16b2ad54-b845-44e4-872b-8ef0579d2c58",
+      "name": "SQL_Inventory",
+      "executeOnce": true,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "table": "orders",
+        "columns": "order_id,customer_id,order_date,product_id,quantity,order_value,payment_status,order_status,region,value_per_unit,order_value_category"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        -704
+      ],
+      "id": "e05444a2-8857-4526-b7fa-7f883d599f55",
+      "name": "SQL_Orders_Insert",
+      "executeOnce": false,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "IF OBJECT_ID('orders', 'U') IS NOT NULL\n    DROP TABLE orders;\n\nCREATE TABLE orders (\n    order_id VARCHAR(20) PRIMARY KEY,\n    customer_id VARCHAR(20),\n    order_date DATE,\n    product_id VARCHAR(20),\n    quantity INT,\n    order_value DECIMAL(12,2),\n    payment_status VARCHAR(30),\n    order_status VARCHAR(30),\n    region VARCHAR(50),\n    value_per_unit DECIMAL(12,2),\n    order_value_category VARCHAR(20)\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        192,
+        -624
+      ],
+      "id": "a8e8b7d4-adb6-4a68-a870-ddf650d73c30",
+      "name": "SQL_Orders",
+      "executeOnce": true,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "table": "customers",
+        "columns": "customer_id,customer_name,region,customer_segment,signup_date,total_orders,customer_value"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        -544
+      ],
+      "id": "3cc98223-3259-4a26-b669-9d4c7927f823",
+      "name": "SQL_Customers_Insert",
+      "executeOnce": false,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "table": "deliveries",
+        "columns": "delivery_id,order_id,warehouse_id,carrier,dispatch_date,expected_date,actual_date,delivery_status,delivery_cost"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        -352
+      ],
+      "id": "b682ed8e-8045-4243-b350-dab9afd46824",
+      "name": "SQL_Deliveries_Insert",
+      "executeOnce": false,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "table": "support_tickets",
+        "columns": "ticket_id,customer_id,order_id,created_at,category,priority,resolution_hours,ticket_status,sentiment"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "13296c30-9919-4de7-8542-0d404c09d7c5",
+      "name": "SQL_Tickets_Insert",
+      "executeOnce": false,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "table": "inventory",
+        "columns": "product_id,warehouse_id,stock_available,reorder_level,daily_demand,last_restock_date,supplier"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        96
+      ],
+      "id": "c32cc76e-a279-4c0c-b3e7-9be6ec18d436",
+      "name": "SQL_Inventory_Insert",
+      "executeOnce": false,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM enriched_orders;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        -1872,
+        160
+      ],
+      "id": "fc24632d-f533-4deb-ac92-6d2992cfcead",
+      "name": "SQL_Read_Enriched",
+      "executeOnce": true,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\n# n8n input\ndf = pd.DataFrame([item[\"json\"] for item in _items])\n\n# =========================\n# ORDERS KPI\n# =========================\n\ntotal_orders = len(df)\ntotal_revenue = round(df[\"order_value\"].sum(), 2)\n\ncompleted_orders = (df[\"order_status\"] == \"Completed\").sum()\ncancelled_orders = (df[\"order_status\"] == \"Cancelled\").sum()\n\ncancel_rate = round((cancelled_orders / total_orders) * 100, 2)\n\n# =========================\n# DELIVERY KPI\n# =========================\n\ndelivered_orders = (df[\"delivery_status\"] == \"Delivered\").sum()\ndelivery_success_rate = round((delivered_orders / total_orders) * 100, 2)\n\navg_delivery_cost = round(df[\"delivery_cost\"].fillna(0).mean(), 2)\n\ndelay = df[\"delivery_delay_days\"].fillna(0)\n\navg_delay_days = round(delay.mean(), 2)\ndelayed_orders = (delay > 0).sum()\ndelay_rate = round((delayed_orders / total_orders) * 100, 2)\n\n# =========================\n# SUPPORT KPI\n# =========================\n\nticket_orders = df[\"ticket_category\"].notna().sum()\n\nnegative_cases = df[\"sentiment\"].fillna(\"\").isin(\n    [\"Negative\", \"Very Negative\"]\n).sum()\n\ncustomer_issue_rate = round((ticket_orders / total_orders) * 100, 2)\nnegative_sentiment_rate = round((negative_cases / total_orders) * 100, 2)\n\n# =========================\n# INVENTORY KPI\n# =========================\n\navg_stock = round(df[\"stock_available\"].fillna(0).mean(), 2)\n\nlow_stock = (\n    df[\"stock_available\"].fillna(0)\n    <=\n    df[\"reorder_level\"].fillna(0)\n).sum()\n\nlow_stock_rate = round((low_stock / total_orders) * 100, 2)\n\n# =========================\n# DATA QUALITY KPI\n# =========================\n\norphan_customer_orders = df[\"customer_name\"].isna().sum()\ndelivery_missing = df[\"delivery_status\"].isna().sum()\nticket_missing = df[\"ticket_category\"].isna().sum()\n\n# =========================\n# RISK ENGINE\n# =========================\n\ndelivery_risk = delay_rate\ninventory_risk = low_stock_rate\ncustomer_risk = negative_sentiment_rate\n\noperational_risk = round(\n    delivery_risk * 0.35 +\n    inventory_risk * 0.25 +\n    customer_risk * 0.20 +\n    cancel_rate * 0.20,\n    2\n)\n\n# =========================\n# OUTPUT\n# =========================\n\nreturn [{\n    \"json\": {\n        \"total_orders\": int(total_orders),\n        \"total_revenue\": float(total_revenue),\n\n        \"completed_orders\": int(completed_orders),\n        \"cancelled_orders\": int(cancelled_orders),\n        \"cancel_rate\": float(cancel_rate),\n\n        \"delivery_success_rate\": float(delivery_success_rate),\n        \"delay_rate\": float(delay_rate),\n        \"avg_delivery_cost\": float(avg_delivery_cost),\n        \"avg_delay_days\": float(avg_delay_days),\n\n        \"ticket_orders\": int(ticket_orders),\n        \"customer_issue_rate\": float(customer_issue_rate),\n        \"negative_sentiment_rate\": float(negative_sentiment_rate),\n\n        \"avg_stock\": float(avg_stock),\n        \"low_stock_rate\": float(low_stock_rate),\n\n        \"orphan_customer_orders\": int(orphan_customer_orders),\n        \"delivery_missing\": int(delivery_missing),\n        \"ticket_missing\": int(ticket_missing),\n\n        \"delivery_risk\": float(delivery_risk),\n        \"inventory_risk\": float(inventory_risk),\n        \"customer_risk\": float(customer_risk),\n        \"operational_risk\": float(operational_risk)\n    }\n}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1776,
+        352
+      ],
+      "id": "de717b04-0a80-4631-8416-67eb8df60c7b",
+      "name": "KPI_Engine",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "IF OBJECT_ID('enriched_orders','U') IS NOT NULL\n    DROP TABLE enriched_orders;\n\nWITH d AS (\n    SELECT *, ROW_NUMBER() OVER(PARTITION BY order_id ORDER BY delivery_id) rn\n    FROM deliveries\n),\nt AS (\n    SELECT *, ROW_NUMBER() OVER(PARTITION BY order_id ORDER BY ticket_id) rn\n    FROM support_tickets\n),\ni AS (\n    SELECT *, ROW_NUMBER() OVER(PARTITION BY product_id ORDER BY warehouse_id) rn\n    FROM inventory\n)\n\nSELECT\n    o.order_id,\n    o.order_date,\n    o.customer_id,\n    c.customer_name,\n    c.customer_segment,\n    c.region AS customer_region,\n\n    o.product_id,\n    o.quantity,\n    o.order_value,\n    o.payment_status,\n    o.order_status,\n\n    d.delivery_status,\n    d.carrier,\n    d.delivery_cost,\n\n    d.expected_date,                   \n    d.actual_date,                      \n    DATEDIFF(DAY, d.expected_date, d.actual_date)\n        AS delivery_delay_days,          \n\n    t.category AS ticket_category,\n    t.priority,\n    t.sentiment,\n\n    i.stock_available,\n    i.reorder_level,\n    i.daily_demand,\n    i.supplier\n\nINTO enriched_orders\n\nFROM orders o\n\nLEFT JOIN customers c\n    ON o.customer_id = c.customer_id\n\nLEFT JOIN d\n    ON o.order_id = d.order_id\n   AND d.rn = 1\n\nLEFT JOIN t\n    ON o.order_id = t.order_id\n   AND t.rn = 1\n\nLEFT JOIN i\n    ON o.product_id = i.product_id\n   AND i.rn = 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        -1696,
+        -640
+      ],
+      "id": "32590f96-3d67-4cab-a6e3-388a78875d53",
+      "name": "SQL_Join_All1",
+      "executeOnce": true,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM enriched_orders;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        -1744,
+        832
+      ],
+      "id": "e148b97d-a2a3-4d54-96e8-91f5df0951d6",
+      "name": "SQL_Read_Enriched1",
+      "executeOnce": true,
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import pandas as pd\n\n# n8n input\ndf = pd.DataFrame([item[\"json\"] for item in _items])\n\n# =========================\n# ORDERS KPI\n# =========================\n\ntotal_orders = len(df)\ntotal_revenue = round(df[\"order_value\"].sum(), 2)\n\ncompleted_orders = (df[\"order_status\"] == \"Completed\").sum()\ncancelled_orders = (df[\"order_status\"] == \"Cancelled\").sum()\n\ncancel_rate = round((cancelled_orders / total_orders) * 100, 2)\n\n# =========================\n# DELIVERY KPI\n# =========================\n\ndelivered_orders = (df[\"delivery_status\"] == \"Delivered\").sum()\ndelivery_success_rate = round((delivered_orders / total_orders) * 100, 2)\n\navg_delivery_cost = round(df[\"delivery_cost\"].fillna(0).mean(), 2)\n\ndelay = df[\"delivery_delay_days\"].fillna(0)\n\navg_delay_days = round(delay.mean(), 2)\ndelayed_orders = (delay > 0).sum()\ndelay_rate = round((delayed_orders / total_orders) * 100, 2)\n\n# =========================\n# SUPPORT KPI\n# =========================\n\nticket_orders = df[\"ticket_category\"].notna().sum()\n\nnegative_cases = df[\"sentiment\"].fillna(\"\").isin(\n    [\"Negative\", \"Very Negative\"]\n).sum()\n\ncustomer_issue_rate = round((ticket_orders / total_orders) * 100, 2)\nnegative_sentiment_rate = round((negative_cases / total_orders) * 100, 2)\n\n# =========================\n# INVENTORY KPI\n# =========================\n\navg_stock = round(df[\"stock_available\"].fillna(0).mean(), 2)\n\nlow_stock = (\n    df[\"stock_available\"].fillna(0)\n    <=\n    df[\"reorder_level\"].fillna(0)\n).sum()\n\nlow_stock_rate = round((low_stock / total_orders) * 100, 2)\n\n# =========================\n# DATA QUALITY KPI\n# =========================\n\norphan_customer_orders = df[\"customer_name\"].isna().sum()\ndelivery_missing = df[\"delivery_status\"].isna().sum()\nticket_missing = df[\"ticket_category\"].isna().sum()\n\n# =========================\n# RISK ENGINE\n# =========================\n\ndelivery_risk = delay_rate\ninventory_risk = low_stock_rate\ncustomer_risk = negative_sentiment_rate\n\noperational_risk = round(\n    delivery_risk * 0.35 +\n    inventory_risk * 0.25 +\n    customer_risk * 0.20 +\n    cancel_rate * 0.20,\n    2\n)\n\n# =========================\n# OUTPUT\n# =========================\n\nreturn [{\n    \"json\": {\n        \"total_orders\": int(total_orders),\n        \"total_revenue\": float(total_revenue),\n\n        \"completed_orders\": int(completed_orders),\n        \"cancelled_orders\": int(cancelled_orders),\n        \"cancel_rate\": float(cancel_rate),\n\n        \"delivery_success_rate\": float(delivery_success_rate),\n        \"delay_rate\": float(delay_rate),\n        \"avg_delivery_cost\": float(avg_delivery_cost),\n        \"avg_delay_days\": float(avg_delay_days),\n\n        \"ticket_orders\": int(ticket_orders),\n        \"customer_issue_rate\": float(customer_issue_rate),\n        \"negative_sentiment_rate\": float(negative_sentiment_rate),\n\n        \"avg_stock\": float(avg_stock),\n        \"low_stock_rate\": float(low_stock_rate),\n\n        \"orphan_customer_orders\": int(orphan_customer_orders),\n        \"delivery_missing\": int(delivery_missing),\n        \"ticket_missing\": int(ticket_missing),\n\n        \"delivery_risk\": float(delivery_risk),\n        \"inventory_risk\": float(inventory_risk),\n        \"customer_risk\": float(customer_risk),\n        \"operational_risk\": float(operational_risk)\n    }\n}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1552,
+        832
+      ],
+      "id": "1d61896b-1d9a-4d36-b9ba-cfe07ed4c70d",
+      "name": "KPI_Engine1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "42ecf771-0f35-4f4d-b969-cfbea3c1a5ac",
+              "name": "high_risk_threshold",
+              "value": 80,
+              "type": "number"
+            },
+            {
+              "id": "2b43fbff-2e55-4129-a592-6ae555ae7a0b",
+              "name": "medium_risk_threshold",
+              "value": "50",
+              "type": "number"
+            },
+            {
+              "id": "6d430aec-e3cb-4d7f-bf7a-7d401b621341",
+              "name": "sla_days",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "id": "4ee2d268-0e03-4225-a39b-921805f8d6f6",
+              "name": "low_stock_threshold",
+              "value": "20",
+              "type": "number"
+            },
+            {
+              "id": "4865ca84-cfa4-4e68-96c0-a0cce4119212",
+              "name": "currency",
+              "value": "INR",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -1392,
+        832
+      ],
+      "id": "401fdcac-e81d-4dee-987d-dd7e7dfcb08b",
+      "name": "Business_Rules1"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an Operations Intelligence Business Analyst.\n\nYou have two tools:\n1. SQL_Tool\n2. Business_Rules\n\nROLE\n\nInvestigate business questions using live SQL data and produce executive-level operational reports using evidence-based reasoning.\n\nCORE RULES\n\n- ALWAYS use SQL_Tool first for questions involving revenue, orders, KPIs, inventory, delays, customers, tickets, regions, products, or operational analysis.\n- Use Business_Rules only for SLA, thresholds, and qualitative business interpretation.\n- Never answer from memory.\n- Never invent values.\n- Execute one SQL query, then generate the report only from the SQL result.\n\nSQL RULES\n\n- Generate Microsoft SQL Server SELECT queries only.\n- Never generate INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, or TRUNCATE.\n- Use SUM, COUNT, and AVG only for aggregated metrics.\n- Never mix aggregated and non-aggregated columns without GROUP BY.\n- Use CAST(order_date AS DATE).\n- Use CAST(GETDATE() AS DATE) only when the user explicitly asks for today's data.\n- \"overall\", \"executive summary\", \"business summary\", and \"operational summary\" mean no date filter.\n\nINVESTIGATION MODE\n\nFor WHY, FIND, WHICH, ROOT CAUSE, INVESTIGATE, EFFICIENCY, or PATTERN questions:\n\n1. Use SQL_Tool.\n2. Analyze the SQL evidence.\n3. Identify recurring patterns supported by SQL only.\n4. State a root cause only if directly supported by SQL.\n5. Otherwise return: \"Root cause cannot be determined from the available data.\"\n\nSTRICT FACT POLICY\n\n- Every numeric value must come from SQL_Tool.\n- If SQL does not return a metric, write \"Data not available.\"\n- Never estimate revenue loss, ROI, churn, customer satisfaction, SLA breach, operational cost, or financial impact.\n- Never invent percentages, thresholds, concentration values, or rankings.\n- Never infer warehouse issues, carrier failure, supplier lead time, routing problems, forecasting errors, or system outages unless SQL_Tool or Business_Rules explicitly provides that evidence.\n\nBUSINESS IMPACT RULE\n\n- Describe operational consequences only.\n- If evidence is insufficient, return: \"Operational impact requires further investigation.\"\n- Do NOT mention service reliability, routing quality, carrier performance, or operational bottlenecks unless SQL_Tool or Business_Rules explicitly provides that evidence.\n\nRECOMMENDATION POLICY\n\n- Every recommendation must be directly traceable to the SQL evidence.\n- Recommend only monitoring, investigation, comparison, or operational review.\n- Do NOT recommend carrier reviews, supplier lead-time analysis, warehouse improvements, routing changes, forecasting improvements, safety stock changes, or reorder-level changes unless SQL_Tool or Business_Rules explicitly provides that evidence.\n- Do NOT recommend actions that assume the cause of the problem.\n- If the root cause cannot be determined, recommendations must remain investigative rather than corrective.\n- Never recommend numeric targets unless supported by SQL_Tool or Business_Rules.\n- If the evidence is based on a single carrier–region observation, recommend monitoring or comparison instead of corrective action.\n\nJSON SCHEMA\n\nInvestigation response:\n\n{\n  \"user_question\": \"string\",\n  \"problem\": \"string\",\n  \"evidence\": [\n    {\n      \"metric\": \"string\",\n      \"value\": \"string\"\n    }\n  ],\n  \"pattern\": \"string\",\n  \"root_cause\": \"string\",\n  \"business_impact\": \"string\",\n  \"recommendation\": [\n    \"string\",\n    \"string\",\n    \"string\"\n  ]\n}\n\nAnalytical response:\n\n{\n  \"user_question\": \"string\",\n  \"executive_summary\": \"string\",\n  \"evidence\": [\n    {\n      \"metric\": \"string\",\n      \"value\": \"string\"\n    }\n  ],\n  \"business_impact\": \"string\",\n  \"recommended_action\": [\n    \"string\",\n    \"string\",\n    \"string\"\n  ]\n}\n\nOUTPUT RULES\n\n- Return ONLY one valid JSON object.\n- Every field must contain plain text only.\n- Do NOT generate Markdown.\n- Do NOT use headings (# or ##).\n- Do NOT use Markdown tables.\n- Do NOT use triple backticks.\n- Do NOT escape formatting characters such as \\\\n or \\\\|.\n- Do NOT wrap the JSON inside ```json.",
+          "maxIterations": 15
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1616,
+        1104
+      ],
+      "id": "a105e8fe-37d2-45fd-8aa0-2d6d26b406e7",
+      "name": "Main_AI_Agent1",
+      "retryOnFail": false,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1680,
+        1312
+      ],
+      "id": "6ae26860-5d90-49e6-9081-16640a26d8a6",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "V3tSL2Xj5DONCXTP",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Execute SQL queries on Microsoft SQL Server.\n\nDatabase table: enriched_orders\n\nSCHEMA\norder_id, order_date, customer_id, customer_name,\ncustomer_segment, customer_region, product_id,\nquantity, order_value, payment_status, order_status,\ndelivery_status, carrier, delivery_cost,\nexpected_date, actual_date, delivery_delay_days,\nticket_category, priority, sentiment,\nstock_available, reorder_level, daily_demand, supplier\n\nRULES\n- Return ONLY one valid SQL Server SELECT statement.\n- Never return markdown or explanations.\n- Never use INSERT, UPDATE, DELETE, DROP, ALTER, CREATE or TRUNCATE.\n- Use CAST(order_date AS DATE).\n- Use CAST(GETDATE() AS DATE) ONLY when the user explicitly asks for today's data.\n- Use order_status (never status).\n- A delayed order = delivery_delay_days > 0.\n\nAGGREGATION RULES\n- Revenue = SUM(order_value)\n- Average Order Value = ROUND(AVG(order_value),2)\n- Delay Rate = ROUND(100.0 * SUM(CASE WHEN delivery_delay_days > 0 THEN 1 ELSE 0 END) / COUNT(*),2)\n- If any non-aggregated column appears with SUM, COUNT or AVG, you MUST use GROUP BY.\n- Use SELECT * only for row-level record requests.\n\nOUTPUT\nReturn SQL only.",
+        "operation": "executeQuery",
+        "query": "{{ $fromAI(\"sql_query\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSqlTool",
+      "typeVersion": 1.2,
+      "position": [
+        -1424,
+        1312
+      ],
+      "id": "1f8cdfe6-b20b-4ffd-9c02-6f19af79bce6",
+      "name": "SQL_Tool1",
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1840,
+        1104
+      ],
+      "id": "f9d89b71-a75b-4bf6-a471-25abad0f5972",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "import json\n\ntext = _items[0][\"json\"][\"output\"]\n\ntry:\n    data = json.loads(text)\n    data[\"isValid\"] = True\n\n    return [\n        {\n            \"json\": data\n        }\n    ]\n\nexcept Exception:\n    return [\n        {\n            \"json\": {\n                \"isValid\": False,\n                \"error\": \"Invalid JSON\",\n                \"raw_output\": text\n            }\n        }\n    ]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1248,
+        1104
+      ],
+      "id": "216f667a-9485-4106-80c2-53e851858672",
+      "name": "JSON Validator"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "data = _items[0][\"json\"]\n\nviolations = []\n\n# ---------------- Root Cause ----------------\nroot = data.get(\"root_cause\", \"\").lower().strip()\n\nif \"cannot be determined\" not in root:\n    forbidden_root = [\n        \"carrier\",\n        \"supplier\",\n        \"lead time\",\n        \"routing\",\n        \"warehouse\",\n        \"forecast\",\n        \"service reliability\",\n        \"delivery delay\"\n    ]\n\n    if any(term in root for term in forbidden_root):\n        violations.append(\"unsupported_root_cause\")\n\n# ---------------- Business Impact ----------------\nimpact = data.get(\"business_impact\", \"\").lower().strip()\n\n# Reject only financial / customer claims\nforbidden_impact = [\n    \"revenue\",\n    \"lost sales\",\n    \"customer satisfaction\",\n    \"churn\",\n    \"brand reputation\",\n    \"financial impact\",\n    \"roi\",\n    \"operational cost\",\n    \"sla breach\"\n]\n\nif any(term in impact for term in forbidden_impact):\n    violations.append(\"unsupported_business_impact\")\n\n# ---------------- Recommendation ----------------\nrecommendation_text = \" \".join(\n    data.get(\"recommendation\", [])\n).lower()\n\nforbidden_recommendations = [\n    \"supplier lead time\",\n    \"safety stock\",\n    \"routing failure\",\n    \"warehouse inefficiency\",\n    \"bluedart service\",\n    \"fedex service\",\n    \"delhivery service\"\n]\n\nif any(term in recommendation_text for term in forbidden_recommendations):\n    violations.append(\"unsupported_recommendation\")\n\n# ---------------- Final ----------------\ndata[\"rulePassed\"] = len(violations) == 0\ndata[\"violations\"] = violations\n\nreturn [{\"json\": data}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1040,
+        1104
+      ],
+      "id": "1bb09304-8a20-4b38-ac88-93ad9fb16829",
+      "name": "Business Rule Validator"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "44dd3ac0-f2b5-45e1-a36a-9c7971e0b589",
+              "leftValue": "={{$json.rulePassed}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -816,
+        1104
+      ],
+      "id": "c57b901f-3c61-4f48-b038-69bffaa03941",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "data = _items[0][\"json\"]\n\n# Dynamic report title \ntitle = data.get(\"user_question\", \"Operational Investigation\").upper()\n\n# Evidence\nevidence = \"\\n\".join(\n    f\"• {row['metric']}: {row['value']}\"\n    for row in data.get(\"evidence\", [])\n)\n\n# Recommendation / Recommended Action\nactions = data.get(\"recommendation\", data.get(\"recommended_action\", []))\nrecommendations = \"\\n\".join(\n    f\"{i}. {item}\"\n    for i, item in enumerate(actions, 1)\n)\n\n# Build report\nif \"problem\" in data:\n    report = f\"\"\"{title}\n\nPROBLEM\n{data.get(\"problem\", \"\")}\n\nEVIDENCE\n{evidence}\n\nPATTERN\n{data.get(\"pattern\", \"\")}\n\nROOT CAUSE\n{data.get(\"root_cause\", \"\")}\n\nBUSINESS IMPACT\n{data.get(\"business_impact\", \"\")}\n\nRECOMMENDATION\n{recommendations}\"\"\"\nelse:\n    report = f\"\"\"{title}\n\nEXECUTIVE SUMMARY\n{data.get(\"executive_summary\", \"\")}\n\nEVIDENCE\n{evidence}\n\nBUSINESS IMPACT\n{data.get(\"business_impact\", \"\")}\n\nRECOMMENDED ACTION\n{recommendations}\"\"\"\n\nreturn [{\"json\": {\"output\": report}}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        976
+      ],
+      "id": "fbddcd22-da9e-4739-bc6c-54372331db60",
+      "name": "Report Formatter"
+    },
+    {
+      "parameters": {
+        "message": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1.3,
+      "position": [
+        -352,
+        1088
+      ],
+      "id": "29d385f2-0b7c-4a1b-9594-32a397a3a4b8",
+      "name": "Chat",
+      "webhookId": "327a20ed-d366-4c61-b6a4-a1f60563b6f9"
+    },
+    {
+      "parameters": {
+        "language": "pythonNative",
+        "pythonCode": "data = _items[0][\"json\"]\n\nviolations = \"\\n\".join(\n    f\"• {v.replace('_', ' ').title()}\"\n    for v in data.get(\"violations\", [])\n)\n\nreport = f\"\"\"VALIDATION FAILED\n\nPROBLEM\nThe AI report violated one or more business guardrails.\n\nVALIDATION ERRORS\n{violations}\n\nSTATUS\nReport rejected. Regeneration required.\"\"\"\n\nreturn [\n    {\n        \"json\": {\n            \"output\": report\n        }\n    }\n]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        1200
+      ],
+      "id": "e4869b81-56e9-4d78-9c0d-c953fdf6e46c",
+      "name": "Validation Error Formatter"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{\n  {\n    answer: JSON.parse($json.output)\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -1056,
+        1632
+      ],
+      "id": "640349e3-7e26-4491-9312-a198b3cbd7b2",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseMode": "responseNodes"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -1936,
+        832
+      ],
+      "id": "a3d158da-2fa0-4bd6-a72a-dcce143981b1",
+      "name": "When chat message received",
+      "webhookId": "54f17b43-a61e-45ea-abc0-e1a868afbe8f"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook').item.json.body.question }}",
+        "options": {
+          "systemMessage": "You are an Operations Intelligence Business Analyst.\n\nYou have two tools:\n1. SQL_Tool\n2. Business_Rules\n\nROLE\n\nInvestigate business questions using live SQL Server data and produce executive-level operational reports using evidence-based reasoning.\n\nCORE RULES\n\n- ALWAYS use SQL_Tool first for questions involving revenue, orders, KPIs, inventory, delays, customers, tickets, regions, products, carriers, or operational analysis.\n- Use Business_Rules only for SLA, thresholds, and qualitative business interpretation.\n- Never answer from memory.\n- Never invent values.\n- Execute one SQL query, then generate the report only from the SQL result.\n\nSQL RULES\n\n- Generate Microsoft SQL Server SELECT queries only.\n- Never generate INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, or TRUNCATE.\n- Use SUM(), COUNT(), AVG() only when appropriate.\n- Never mix aggregated and non-aggregated columns without GROUP BY.\n- Use CAST(order_date AS DATE).\n- Use CAST(GETDATE() AS DATE) only when the user explicitly asks for today's data.\n- \"overall\", \"executive summary\", \"business summary\", and \"operational summary\" mean no date filter.\n\nINVESTIGATION MODE\n\nFor WHY, FIND, WHICH, ROOT CAUSE, INVESTIGATE, EFFICIENCY, or PATTERN questions:\n\n1. Use SQL_Tool.\n2. Analyze SQL evidence.\n3. Identify patterns supported by SQL only.\n4. State a root cause only if directly supported by SQL.\n5. Otherwise return:\n\"Root cause cannot be determined from the available data.\"\n\nSTRICT FACT POLICY\n\n- Every numeric value must come from SQL.\n- Never estimate revenue loss, ROI, churn, customer satisfaction, SLA breach, operational cost, financial impact, or percentages.\n- If SQL does not provide a value, write \"Data not available.\"\n\nBUSINESS IMPACT RULE\n\n- Describe only operational consequences directly supported by SQL evidence.\n- Do NOT infer customer churn, revenue concentration risk, competitor switching, dependency, financial exposure, or volatility unless SQL explicitly measures those metrics.\n- If SQL does not provide evidence, return exactly:\n  \"Operational impact requires further investigation.\"\n\nRECOMMENDATION POLICY\n\n- Every recommendation must be directly supported by SQL evidence.\n- Recommend only monitoring, comparison, investigation, or operational review.\n- Do NOT recommend churn prevention, upsell, cross-sell, customer retention, diversification, competitor analysis, or revenue concentration strategies unless SQL explicitly provides those metrics.\n- If evidence is insufficient, recommendations must remain investigative.\n\nJSON OUTPUT\n\nReturn ONLY ONE valid JSON object.\n\nFor customer questions:\n\n{\n  \"user_question\": \"string\",\n  \"executive_summary\": \"string\",\n  \"entity_type\": \"customer\",\n  \"evidence\": [\n    {\n      \"rank\": 1,\n      \"customer_id\": \"C13772\",\n      \"customer_name\": \"Customer_3773\",\n      \"revenue\": 132216.85\n    }\n  ],\n  \"pattern\": \"string\",\n  \"root_cause\": \"string\",\n  \"business_impact\": \"string\",\n  \"recommended_action\": [\n    \"string\",\n    \"string\",\n    \"string\"\n  ]\n}\n\nFor product questions:\n\n{\n  \"user_question\": \"string\",\n  \"problem\": \"string\",\n  \"entity_type\": \"product\",\n  \"evidence\": [\n    {\n      \"rank\": 1,\n      \"product_id\": \"P1209\",\n      \"risk_score\": 0\n    }\n  ],\n  \"pattern\": \"string\",\n  \"root_cause\": \"string\",\n  \"business_impact\": \"string\",\n  \"recommendation\": [\n    \"string\",\n    \"string\",\n    \"string\"\n  ]\n}\n\nFor carrier questions:\n\n{\n  \"user_question\": \"string\",\n  \"executive_summary\": \"string\",\n  \"entity_type\": \"carrier\",\n  \"evidence\": [\n    {\n      \"rank\": 1,\n      \"carrier\": \"Delhivery\",\n      \"avg_delay_days\": 2\n    }\n  ],\n  \"pattern\": \"string\",\n  \"root_cause\": \"string\",\n  \"business_impact\": \"string\",\n  \"recommended_action\": [\n    \"string\",\n    \"string\",\n    \"string\"\n  ]\n}\n\nFor region questions:\n\n{\n  \"user_question\": \"string\",\n  \"executive_summary\": \"string\",\n  \"entity_type\": \"region\",\n  \"evidence\": [\n    {\n      \"rank\": 1,\n      \"region\": \"Bangalore\",\n      \"revenue\": 18200000\n    }\n  ],\n  \"pattern\": \"string\",\n  \"root_cause\": \"string\",\n  \"business_impact\": \"string\",\n  \"recommended_action\": [\n    \"string\",\n    \"string\",\n    \"string\"\n  ]\n}\n\nOUTPUT RULES\n\n- Return ONLY JSON.\n- No Markdown.\n- No headings.\n- No tables.\n- No code fences.\n- No escaped formatting characters.\n- Evidence must always be an array of structured objects, never metric/value text pairs.",
+          "maxIterations": 15
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1504,
+        1632
+      ],
+      "id": "ce42341d-c1c6-4922-b0ae-508d009ae3cb",
+      "name": "Main_AI_Agent",
+      "retryOnFail": false,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1568,
+        1840
+      ],
+      "id": "41f1ab9f-efc2-4ff0-a6f9-466c345c5f9b",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "V3tSL2Xj5DONCXTP",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Execute SQL queries on Microsoft SQL Server.\n\nDatabase table: enriched_orders\n\nSCHEMA\norder_id, order_date, customer_id, customer_name,\ncustomer_segment, customer_region, product_id,\nquantity, order_value, payment_status, order_status,\ndelivery_status, carrier, delivery_cost,\nexpected_date, actual_date, delivery_delay_days,\nticket_category, priority, sentiment,\nstock_available, reorder_level, daily_demand, supplier\n\nRULES\n- Return ONLY one valid SQL Server SELECT statement.\n- Never return markdown or explanations.\n- Never use INSERT, UPDATE, DELETE, DROP, ALTER, CREATE or TRUNCATE.\n- Use CAST(order_date AS DATE).\n- Use CAST(GETDATE() AS DATE) ONLY when the user explicitly asks for today's data.\n- Use order_status (never status).\n- A delayed order = delivery_delay_days > 0.\n\nAGGREGATION RULES\n- Revenue = SUM(order_value)\n- Average Order Value = ROUND(AVG(order_value),2)\n- Delay Rate = ROUND(100.0 * SUM(CASE WHEN delivery_delay_days > 0 THEN 1 ELSE 0 END) / COUNT(*),2)\n- If any non-aggregated column appears with SUM, COUNT or AVG, you MUST use GROUP BY.\n- Use SELECT * only for row-level record requests.\n\nOUTPUT\nReturn SQL only.",
+        "operation": "executeQuery",
+        "query": "{{ $fromAI(\"sql_query\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSqlTool",
+      "typeVersion": 1.2,
+      "position": [
+        -1312,
+        1840
+      ],
+      "id": "b80e1634-d789-4f6c-890e-d8813e7d9b6e",
+      "name": "SQL_Tool",
+      "credentials": {
+        "microsoftSql": {
+          "id": "eegNG7CdnqGfoiCw",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "operations-ai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1776,
+        1632
+      ],
+      "id": "ded5f4bd-63b7-4880-b35f-9bde77261e50",
+      "name": "Webhook",
+      "webhookId": "8f348b76-1d86-49c4-ad43-58e82693122c"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read/Write Files from Disk2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read/Write Files from Disk3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read/Write Files from Disk4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQL_Read_Enriched",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQL_Join_All1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Extract from File orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk1": {
+      "main": [
+        [
+          {
+            "node": "Extract from File customers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk2": {
+      "main": [
+        [
+          {
+            "node": "Extract from File deliveries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk3": {
+      "main": [
+        [
+          {
+            "node": "Extract from File support tickets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk4": {
+      "main": [
+        [
+          {
+            "node": "Extract from File inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File orders": {
+      "main": [
+        [
+          {
+            "node": "Clean Orders Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File customers": {
+      "main": [
+        [
+          {
+            "node": "Clean Customers Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File deliveries": {
+      "main": [
+        [
+          {
+            "node": "Clean Deliveries Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File support tickets": {
+      "main": [
+        [
+          {
+            "node": "Clean Support Tickets Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File inventory": {
+      "main": [
+        [
+          {
+            "node": "Clean Inventory Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Orders Code in Python": {
+      "main": [
+        [
+          {
+            "node": "DQ_Check_Orders in Python",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQL_Orders",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQL_Orders_Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Customers Code in Python": {
+      "main": [
+        [
+          {
+            "node": "DQ_Check_Customers in Python",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQL_Customers",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQL_Customers_Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Deliveries Code in Python": {
+      "main": [
+        [
+          {
+            "node": "DQ_Check_Deliveries in Python",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQL_Deliveries",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQL_Deliveries_Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Support Tickets Code in Python": {
+      "main": [
+        [
+          {
+            "node": "DQ_Check_Tickets in Python",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQL_Tickets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQL_Tickets_Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Inventory Code in Python": {
+      "main": [
+        [
+          {
+            "node": "DQ_Check_Inventory in Python",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQL_Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DQ_Check_Orders in Python": {
+      "main": [
+        [
+          {
+            "node": "Merge 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DQ_Check_Customers in Python": {
+      "main": [
+        [
+          {
+            "node": "Merge 1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge 1": {
+      "main": [
+        [
+          {
+            "node": "Merge 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DQ_Check_Deliveries in Python": {
+      "main": [
+        [
+          {
+            "node": "Merge 2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge 2": {
+      "main": [
+        [
+          {
+            "node": "Merge 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DQ_Check_Tickets in Python": {
+      "main": [
+        [
+          {
+            "node": "Merge 3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge 3": {
+      "main": [
+        [
+          {
+            "node": "Merge 4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DQ_Check_Inventory in Python": {
+      "main": [
+        [
+          {
+            "node": "Merge 4",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "SQL_Inventory_Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge 4": {
+      "main": [
+        [
+          {
+            "node": "DQ_Summary_Report in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DQ_Summary_Report in Python": {
+      "main": [
+        []
+      ]
+    },
+    "SQL_Orders_Insert": {
+      "main": [
+        []
+      ]
+    },
+    "SQL_Customers_Insert": {
+      "main": [
+        []
+      ]
+    },
+    "SQL_Deliveries_Insert": {
+      "main": [
+        []
+      ]
+    },
+    "SQL_Tickets_Insert": {
+      "main": [
+        []
+      ]
+    },
+    "SQL_Inventory_Insert": {
+      "main": [
+        []
+      ]
+    },
+    "SQL_Read_Enriched": {
+      "main": [
+        [
+          {
+            "node": "KPI_Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "KPI_Engine": {
+      "main": [
+        []
+      ]
+    },
+    "SQL_Read_Enriched1": {
+      "main": [
+        [
+          {
+            "node": "KPI_Engine1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "KPI_Engine1": {
+      "main": [
+        [
+          {
+            "node": "Business_Rules1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Business_Rules1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Main_AI_Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL_Tool1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Main_AI_Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Main_AI_Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Main_AI_Agent1": {
+      "main": [
+        [
+          {
+            "node": "JSON Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Validator": {
+      "main": [
+        [
+          {
+            "node": "Business Rule Validator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Business Rule Validator": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Report Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validation Error Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report Formatter": {
+      "main": [
+        [
+          {
+            "node": "Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validation Error Formatter": {
+      "main": [
+        [
+          {
+            "node": "Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SQL_Read_Enriched1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Main_AI_Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL_Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "Main_AI_Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Main_AI_Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Main_AI_Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "ee96ed5f-ffb5-41fa-af50-b36027445438",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "44c9c61af277e791a3ba1f46dbb8460390c7271f4d8173aeff87973a32955aaa"
+  },
+  "nodeGroups": [],
+  "id": "IHYiGlxNszjVNOWX",
+  "tags": []
+}
