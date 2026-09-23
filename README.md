@@ -1,14 +1,20 @@
 # 🤖 Operations Intelligence & Incident Management Platform
 
-> End-to-End AI-Powered Business Intelligence Platform using **Streamlit, n8n, SQL Server, Python & Groq LLM**
+> End-to-End AI-Powered Business Intelligence Platform using **Streamlit, n8n, SQL Server, Python, Docker & Groq LLM**
 
-An enterprise-style Operations Intelligence platform that transforms natural language business questions into live SQL Server queries and generates executive-level operational reports using an AI Agent.
+[![Live Dashboard](https://img.shields.io/badge/🚀_Live_Dashboard-Streamlit-success?style=for-the-badge)](https://operations-intelligence-incident-management-platform-vph9i3yhs.streamlit.app)
+
+### 🌐 Live Dashboard
+
+**https://operations-intelligence-incident-management-platform-vph9i3yhs.streamlit.app**
 
 ---
 
-# 📌 Project Overview
+## 📌 Project Overview
 
-This project simulates a real-world Operations Intelligence environment where business users can ask questions such as:
+This project simulates a real-world **Operations Intelligence & Incident Management** environment where business users ask natural language questions and receive executive-level operational reports generated from **live SQL Server data**.
+
+### Example Business Questions
 
 - Which region generated the highest revenue?
 - Who are the top 10 customers by revenue?
@@ -16,7 +22,7 @@ This project simulates a real-world Operations Intelligence environment where bu
 - Which carrier has the highest average delivery delay?
 - Where are we losing operational efficiency?
 
-The AI Agent automatically generates SQL, executes it on SQL Server, validates the result, and returns a structured executive report through Streamlit.
+The AI Agent automatically generates SQL, executes it on SQL Server, validates the results, and returns structured business reports through Streamlit.
 
 ---
 
@@ -67,53 +73,44 @@ Groq LLM     SQL Tool
 
 # 🔄 Workflow 1 — ETL & Data Quality Pipeline
 
-## Objective
+### Objective
 
-Design a production-style ETL pipeline that ingests multiple operational datasets, performs Python-based data cleaning and data quality validation, loads each dataset into Microsoft SQL Server, and builds a unified analytical table (`enriched_orders`) for downstream AI analytics.
-
----
+Build a production-style ETL pipeline that ingests multiple operational datasets, performs Python-based data cleaning and validation, loads clean tables into SQL Server, and creates the unified analytical table **`enriched_orders`**.
 
 ## ETL Pipeline
 
 ```text
-Orders.csv ───────────────┐
-Customers.csv ────────────┤
-Deliveries.csv ───────────┤
-Support_Tickets.csv ──────┤
-Inventory.csv ────────────┘
-            │
-            ▼
-     Read Files from Disk
-            │
-            ▼
-      Extract CSV Records
-            │
-            ▼
-   Python Data Cleaning
-            │
-            ▼
-   Data Quality Validation
-            │
-            ▼
-   SQL Server Table Load
-            │
-            ├── Orders
-            ├── Customers
-            ├── Deliveries
-            ├── Tickets
-            └── Inventory
-            │
-            ▼
- SQL Join & Data Enrichment
-            │
-            ▼
-     enriched_orders
-            │
-            ▼
- KPI Engine + AI Analytics
+Orders.csv
+Customers.csv
+Deliveries.csv
+Support_Tickets.csv
+Inventory.csv
+        │
+        ▼
+Read Files
+        │
+        ▼
+Extract CSV
+        │
+        ▼
+Python Data Cleaning
+        │
+        ▼
+Data Quality Engine
+        │
+        ▼
+SQL Server Load
+        │
+        ▼
+SQL Join & Enrichment
+        │
+        ▼
+enriched_orders
 ```
 
----
+### ETL Workflow
+
+![Workflow 1](screenshots/workflow1.png)
 
 ## Datasets
 
@@ -125,13 +122,9 @@ Inventory.csv ────────────┘
 | Support Tickets | 5,060 |
 | Inventory | 8,100 |
 
-**Total Records Processed:** 36,880+
-
----
+**Total Records Processed:** **36,880+**
 
 ## Python Data Cleaning
-
-Each dataset is cleaned independently using Python (Pandas).
 
 - Missing value handling
 - Duplicate removal
@@ -139,32 +132,26 @@ Each dataset is cleaned independently using Python (Pandas).
 - Date standardization
 - Payment status normalization
 - Delivery status validation
-- Inventory consistency checks
-- Customer ID integrity validation
+- Customer integrity checks
+- Inventory consistency validation
 
----
+## Data Quality Validation
 
-## Data Quality Engine
+Every dataset is validated before SQL loading.
 
-A dedicated DQ validation module evaluates every dataset before loading into SQL Server.
+**Checks include:**
 
-**Validation checks include:**
-
-- Null value detection
+- Null values
 - Duplicate records
 - Invalid dates
 - Negative quantities
-- Invalid payment status
+- Payment status validation
 - Delivery delay validation
 - Stock consistency rules
 
-A consolidated **DQ Summary Report** is generated after all validations.
+## SQL Server Warehouse
 
----
-
-## SQL Server Data Warehouse
-
-After successful validation, each cleaned dataset is loaded into its own SQL table.
+Five cleaned SQL tables are created:
 
 | SQL Table | Source |
 |-----------|--------|
@@ -174,103 +161,113 @@ After successful validation, each cleaned dataset is loaded into its own SQL tab
 | Tickets | support_tickets.csv |
 | Inventory | inventory.csv |
 
-Finally, SQL joins all operational tables to create the analytical table:
+Finally, SQL joins all tables into:
 
-**`enriched_orders`**
+### `enriched_orders`
 
-This table becomes the single source of truth for KPI calculation and AI-driven business analysis.
+The analytical table powering KPI calculations and AI analytics.
 
 ---
 
-## Output
+# 🤖 Workflow 2 & 3 — Conversational AI Agent + Streamlit
 
-- Clean SQL tables
-- Data Quality Summary
-- Unified `enriched_orders` analytical table
-- Ready for KPI Engine & AI Agent
----
+The AI workflow combines **Groq LLM**, **SQL Tool**, **Business Rules**, and **Webhook API** to answer business questions from live SQL Server data.
 
-# 🤖 Workflow 2 — Conversational AI Agent
-
-### Pipeline
+## AI Workflow
 
 ```text
-Chat Message
-      │
-      ▼
+Business Question
+        │
+        ▼
+Streamlit AI Command Center
+        │
+        ▼
+Webhook API
+        │
+        ▼
 Main AI Agent
- ├───────────────┐
- │               │
- ▼               ▼
-Groq Chat     SQL Tool
-                  │
-                  ▼
-          Live SQL Query
-                  │
-                  ▼
-        JSON Validator
-                  │
-                  ▼
- Business Rule Validator
-                  │
-                  ▼
-   Executive Report Formatter
+   │
+   ├── SQL Generator
+   ├── SQL Execution
+   ├── Business Rules
+   ├── JSON Validator
+   └── Executive Report
+        │
+        ▼
+Business Response
 ```
 
-### AI Capabilities
+### AI Workflow (Workflow 2 & 3)
 
-- Natural Language to SQL
+![Workflow 2 & 3](screenshots/workflow2_3.png)
+
+## AI Capabilities
+
+- Natural Language → SQL
 - Live SQL Execution
 - Revenue Analytics
-- Customer Analytics
+- Customer Intelligence
 - Inventory Risk Analysis
-- Delivery Performance Analysis
+- Logistics Performance Analysis
 - Root Cause Investigation
 - Executive Report Generation
 
 ---
 
-# 🌐 Workflow 3 — Streamlit Dashboard + Webhook API
+# 📊 Executive Dashboard
 
-### User Flow
+Interactive enterprise dashboard built with **Streamlit** and connected directly to SQL Server.
 
-```text
-User Question
-      │
-      ▼
-Streamlit UI
-      │
-      ▼
-POST /webhook-test
-      │
-      ▼
-n8n AI Agent
-      │
-      ▼
-SQL Server
-      │
-      ▼
-JSON Response
-      │
-      ▼
-Executive Dashboard
-```
+![Executive Dashboard](screenshots/dashboard.png)
 
-### Dashboard Features
+## Dashboard Modules
 
-- AI Command Center
-- Executive Summary
-- Evidence Table
+- 📊 Executive Dashboard
+- 👥 Customer Intelligence
+- 🚚 Logistics Analytics
+- 📦 Inventory Risk
+- 🤖 AI Command Center
+
+## Executive KPIs
+
+| KPI | Value |
+|------|------:|
+| Orders | 9,900 |
+| Revenue | ₹125.85M |
+| Delay Rate | 40.4% |
+| High Risk Orders | 1,347 |
+
+---
+
+# 🧠 AI Executive Report
+
+Every business question returns a structured executive report.
+
+![Executive Report](screenshots/executive_report.png)
+
+## Investigation Report Structure
+
+- Business Question
+- Problem Identified
+- Evidence
 - Pattern Analysis
 - Root Cause
 - Business Impact
 - Recommended Actions
 
+## Analytical Report Structure
+
+- Business Question
+- Executive Summary
+- Evidence Table
+- Business Impact
+- Recommended Actions
+
 ---
 
-# 📊 Database Schema
+# 🗄️ Database Schema
 
-**Primary Table:** `enriched_orders`
+**Primary Analytical Table:** `enriched_orders`
 
 | Category | Fields |
 |----------|--------|
@@ -297,75 +294,23 @@ Which carrier has the highest average delivery delay?
 
 Where are we losing operational efficiency?
 ```
----
-
-# 📈 Executive Dashboard
-
-Interactive executive dashboard connected directly to SQL Server.
-
-![Executive Dashboard](images/executive_dashboard.png)
-
-### Dashboard Modules
-
-- 📦 Executive KPI Cards
-- 🌍 Revenue by Region
-- 📊 Orders by Status
-- 👥 Customer Intelligence
-- 🚚 Logistics Analytics
-- 📦 Inventory Risk
-- 🤖 AI Command Center
-
-### Executive KPIs
-
-| KPI | Value |
-|---|---:|
-| Orders | 9,900 |
-| Revenue | ₹125.85M |
-| Delay Rate | 40.4% |
-| High Risk Orders | 1,347 |
-
----
-
-# 🧠 AI Executive Report
-
-Every business question returns a structured executive report.
----
-
-# 📈 Executive Report Structure
-
-Every AI response is converted into a structured business report.
-
-### Investigation Report
-
-- Business Question
-- Problem Identified
-- Evidence
-- Pattern
-- Root Cause
-- Business Impact
-- Recommended Actions
-
-### Analytical Report
-
-- Business Question
-- Executive Summary
-- Evidence
-- Business Impact
-- Recommended Actions
 
 ---
 
 # ✨ Key Features
 
+- ✅ End-to-End ETL Pipeline
+- ✅ Python Data Cleaning
+- ✅ Data Quality Validation Engine
+- ✅ Microsoft SQL Server Integration
+- ✅ SQL Join & Data Enrichment
+- ✅ Conversational AI Business Analyst
 - ✅ Natural Language SQL Generation
-- ✅ Live SQL Server Query Execution
-- ✅ AI Business Analyst
+- ✅ Live SQL Query Execution
 - ✅ Executive Report Generator
-- ✅ KPI Investigation Engine
-- ✅ Data Quality Validation
-- ✅ Streamlit Dashboard
+- ✅ Streamlit Interactive Dashboard
 - ✅ REST Webhook API
-- ✅ Docker Self-hosted Deployment
+- ✅ Docker Self-Hosted n8n Workflow
 
 ---
 
@@ -375,14 +320,9 @@ Every AI response is converted into a structured business report.
 Operations-Intelligence-Incident-Management-Platform
 │
 ├── app.py
-├── docker-compose.yml
 ├── requirements.txt
+├── docker-compose.yml
 ├── README.md
-│
-├── workflows/
-│   ├── etl_workflow.json
-│   ├── ai_chat_workflow.json
-│   └── webhook_workflow.json
 │
 ├── datasets/
 │   ├── orders.csv
@@ -391,11 +331,25 @@ Operations-Intelligence-Incident-Management-Platform
 │   ├── tickets.csv
 │   └── inventory.csv
 │
+├── workflows/
+│   ├── workflow1_etl.json
+│   ├── workflow2_ai_chat.json
+│   └── workflow3_webhook.json
+│
 ├── screenshots/
+│   ├── workflow1.png
+│   ├── workflow2_3.png
 │   ├── dashboard.png
-│   ├── etl_workflow.png
-│   ├── ai_agent.png
-│   └── executive_report.png
+│   ├── executive_report.png
+│   └── sql_results.png
+│
+├── views/
+│   ├── executive.py
+│   ├── customer.py
+│   ├── logistics.py
+│   ├── inventory.py
+│   ├── ai_command.py
+│   └── common.py
 │
 └── sql/
     └── enriched_orders_schema.sql
@@ -405,26 +359,33 @@ Operations-Intelligence-Incident-Management-Platform
 
 # 🚀 Getting Started
 
-### Clone Repository
+## Clone Repository
 
 ```bash
 git clone https://github.com/datawithsayannaha/Operations-Intelligence-Incident-Management-Platform.git
+
 cd Operations-Intelligence-Incident-Management-Platform
 ```
 
-### Start Docker
+## Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+## Start n8n
 
 ```bash
 docker compose up -d
 ```
 
-### Run Streamlit
+## Run Streamlit
 
 ```bash
 streamlit run app.py
 ```
 
-### Open Dashboard
+Open:
 
 ```text
 http://localhost:8501
@@ -434,24 +395,27 @@ http://localhost:8501
 
 # 📸 Screenshots
 
-Add the following screenshots inside the **/screenshots** folder:
-
-- ETL Workflow
-- AI Agent Workflow
-- Streamlit Dashboard
-- Executive Report
-- SQL Query Results
+| Preview | File |
+|---------|------|
+| ETL Pipeline | `screenshots/workflow1.png` |
+| AI Agent + Webhook | `screenshots/workflow2_3.png` |
+| Executive Dashboard | `screenshots/dashboard.png` |
+| AI Executive Report | `screenshots/executive_report.png` |
+| SQL Results | `screenshots/sql_results.png` |
 
 ---
 
-# 👨‍💻 Author
+# 👨‍💻 About Me
 
 **Sayan Naha**
 
-Data Analyst • SQL • Python • Power BI • Microsoft Fabric • AI Automation
+**Data Analyst • SQL • Python • Power BI • Microsoft Fabric • AI Automation**
 
-GitHub: **@datawithsayannaha**
+📧 Email: snsayan2012@gmail.com
+🔗 LinkedIn: https://www.linkedin.com/in/sayan-naha/
+- GitHub: **@datawithsayannaha**
+
 
 ---
 
-## ⭐ Star this repository if you found it useful!
+## ⭐ If you found this project useful, consider giving it a Star!
